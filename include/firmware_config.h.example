@@ -1,0 +1,7 @@
+#pragma once
+
+#define WIFI_SSID ""
+#define WIFI_PASSWORD ""
+#define WS_SERVER_HOST ""
+#define WS_SERVER_PORT 8000
+#define WS_SERVER_PATH "/ws"
