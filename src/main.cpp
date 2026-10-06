@@ -1,12 +1,16 @@
 #include "main.h"
+#include <Arduino.h>
 #include <WiFi.h>
+#include <esp_mac.h>
 #include <multi_button.h>
+#include "entities.h"
 #include "hal/buzzer.h"
 #include "hal/buzzer_player.h"
 #include "hal/buttons.h"
 #include "hal/ztw_ddsu666.h"
 #include "pins.h"
 #include "firmware_config.h"
+#include "wsclient.h"
 
 namespace
 {
@@ -57,11 +61,22 @@ void setup(void)
         Serial.print(".");
     }
     Serial.println("[wifi] connected");
+
+    // 板子的身份就是芯片 MAC 前 3 字节
+    uint8_t mac[6];
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    char path[48];
+    snprintf(path, sizeof(path), "%s?device_id=esp-%02x%02x%02x", WS_SERVER_PATH, mac[0], mac[1], mac[2]);
+    Serial.printf("[main] device_id = esp-%02x%02x%02x\n", mac[0], mac[1], mac[2]);
+    wsclient_init(path);
+    entities::init();
 }
 
 void loop(void)
 {
     button::update();
     ztw_ddsu666::update();
+    wsclient_update();
+    entities::update();
     delay(10);
 }

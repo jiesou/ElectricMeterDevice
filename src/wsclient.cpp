@@ -1,19 +1,8 @@
 #include "wsclient.h"
-#include <ArduinoJson.h>
 #include "firmware_config.h"
 
-static unsigned long last_ping_updated = 0;
 void wsclient_update()
 {
-    if (millis() - last_ping_updated > 5000)
-    {
-        JsonDocument doc;
-        doc["type"] = "ping";
-        String output;
-        serializeJson(doc, output);
-        wsclient_send_message(output);
-        last_ping_updated = millis();
-    }
     ws.loop();
 }
 
@@ -30,7 +19,7 @@ void wsclient_send_message(const String &message)
 
 bool isServerConnected = false;
 
-void wsclient_init()
+void wsclient_init(const char *path)
 {
     ws.setReconnectInterval(1000);
     ws.enableHeartbeat(4000, 12000, 0); // 设置心跳间隔为 4 秒，超时为 12 秒，断开重试次数不限
@@ -74,7 +63,7 @@ void wsclient_init()
             Serial.printf("[WSClient] Error, type: %d, length: %d\n", type, length);
             break;
         } });
-    ws.begin(WS_SERVER_HOST, WS_SERVER_PORT, WS_SERVER_PATH);
+    ws.begin(WS_SERVER_HOST, WS_SERVER_PORT, path);
 }
 
 void wsclient_on_message(void (*callback)(const String &message))

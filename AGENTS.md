@@ -32,16 +32,13 @@
 
 - `platformio.ini`
 - `src/wsclient.cpp`
+- `src/entities.cpp`
 - `src/hal/`
 
 # 已规划
 
 > 实现后挪到上方，然后从这里删除，不留
 
-- 联网
-- 基于旧 wsclient 的通信跑通
-- pub_entities 跑通
-- action 动作跑通
 - 真实 RS485 电能表数据读取
 - 真实继电器驱动
 
@@ -50,8 +47,15 @@
 ```bash
 pio run
 pio run -e esp32dev_1000000
-pio run -t upload # 默认参数即可，相信PIO自动选择。加额外参数反而可能导致烧录不好
+pio run -t upload # 默认参数即可，加额外参数反而可能导致烧录不好
 pio device monitor --port /dev/ttyUSB0
 ```
 
 默认构建环境是 `esp32dev_2000000`，串口监视器波特率为 `115200`。烧录前确认所选串口和实际开发板。
+
+WiFi 一直认证不过去（串口刷 `reason=2`）时，是 nvs 里的 WiFi/射频校准数据坏了，擦干净再烧就恢复：
+
+```bash
+pio run -t erase
+pio run -t upload --upload-port /dev/ttyUSB0
+```
