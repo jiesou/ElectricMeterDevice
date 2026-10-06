@@ -4,9 +4,7 @@
 
 namespace
 {
-    constexpr uint32_t TICK_MS = 1000;       // 读数刷新与增量上报的节奏
-    constexpr uint32_t ALIVE_MS = 30 * 1000; // 协议定的应用层心跳间隔
-    constexpr float KETTLE_W = 1600;         // 占位读数：热水壶额定功率
+    constexpr float KETTLE_W = 1600;   // 占位读数：热水壶额定功率
 
     constexpr const char *SWITCH_ID = "kettle";
     constexpr const char *METER_ID = "kettle-meter";
@@ -19,8 +17,6 @@ namespace
     };
 
     bool declared = false;
-    uint32_t last_tick_ms = 0;
-    uint32_t last_alive_ms = 0;
     Reading kettle = {false, 0, 0};
     Reading sent = {false, 0, 0};
     float energy_sum = 0; // 电量累加值，四舍五入会把它吃掉，报出去的时候再取整
@@ -29,7 +25,7 @@ namespace
     {
         String out;
         serializeJson(doc, out);
-        wsclient_send_message(out);
+        wsclient::send_message(out);
     }
 
     // 只在读数变了的时候发，没提到的字段服务器保持原样
@@ -90,33 +86,30 @@ namespace
         send(ack);
     }
 
-    void tick(void)
-    {
-        const uint32_t now = millis();
-        if (now - last_tick_ms < TICK_MS)
-            return;
-
-        // 占位读数：开着就是额定功率，电量按流过的时间累加
-        const float seconds = (now - last_tick_ms) / 1000.0f;
-        kettle.power_w = kettle.on ? KETTLE_W : 0;
-        energy_sum += kettle.power_w * seconds / 3.6e6f;
-        kettle.energy_kwh = roundf(energy_sum * 100) / 100;
-        last_tick_ms = now;
-    }
 }
 
 namespace entities
 {
     void init(void)
     {
-        wsclient_on_message(on_message);
+        wsclient::on_message(on_message);
     }
 
     void update(void)
     {
-        tick();
+        const uint32_t now = millis();
+        static uint32_t lastUpdateMs = 0;
+        if (now - lastUpdateMs < 1000)
+            return;
+        lastUpdateMs = now;
 
-        if (!isServerConnected)
+        // 占位读数：开着就是额定功率，电量按流过的时间累加
+        const float seconds = (now - lastUpdateMs) / 1000.0f;
+        kettle.power_w = kettle.on ? KETTLE_W : 0;
+        energy_sum += kettle.power_w * seconds / 3.6e6f;
+        kettle.energy_kwh = roundf(energy_sum * 100) / 100;
+
+        if (!wsclient::isServerConnected)
         {
             declared = false;
             return;
@@ -124,17 +117,8 @@ namespace entities
         if (!declared)
         {
             declared = true;
-            last_alive_ms = millis();
             send_entities(true);
         }
         send_entities(false);
-
-        if (millis() - last_alive_ms >= ALIVE_MS)
-        {
-            JsonDocument doc;
-            doc["type"] = "pub_alive";
-            send(doc);
-            last_alive_ms = millis();
-        }
     }
 }
