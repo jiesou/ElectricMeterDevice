@@ -1,11 +1,10 @@
 #include "entities.h"
 #include <ArduinoJson.h>
+#include "hal/ztw_ddsu666.h"
 #include "wsclient.h"
 
 namespace
 {
-    constexpr float KETTLE_W = 1600;   // 占位读数：热水壶额定功率
-
     constexpr const char *SWITCH_ID = "kettle";
     constexpr const char *METER_ID = "kettle-meter";
 
@@ -19,7 +18,6 @@ namespace
     bool declared = false;
     Reading kettle = {false, 0, 0};
     Reading sent = {false, 0, 0};
-    float energy_sum = 0; // 电量累加值，四舍五入会把它吃掉，报出去的时候再取整
 
     void send(JsonDocument &doc)
     {
@@ -103,11 +101,11 @@ namespace entities
             return;
         lastUpdateMs = now;
 
-        // 占位读数：开着就是额定功率，电量按流过的时间累加
-        const float seconds = (now - lastUpdateMs) / 1000.0f;
-        kettle.power_w = kettle.on ? KETTLE_W : 0;
-        energy_sum += kettle.power_w * seconds / 3.6e6f;
-        kettle.energy_kwh = roundf(energy_sum * 100) / 100;
+        if (ztw_ddsu666::online)
+        {
+            kettle.power_w = roundf(ztw_ddsu666::reading.power_w * 10) / 10;
+            kettle.energy_kwh = roundf(ztw_ddsu666::reading.energy_kwh * 100) / 100;
+        }
 
         if (!wsclient::isServerConnected)
         {
