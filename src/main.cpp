@@ -6,6 +6,8 @@
 #include "hal/buzzer.h"
 #include "hal/buzzer_player.h"
 #include "hal/buttons.h"
+#include "hal/led.h"
+#include "hal/matrix.h"
 #include "hal/ztw_ddsu666.h"
 #include "pins.h"
 #include "firmware_config.h"
@@ -17,7 +19,6 @@ namespace
     {
         if (evt == BTN_PRESS_DOWN)
         {
-            digitalWrite(PIN_LED, digitalRead(PIN_LED) == HIGH ? LOW : HIGH);
             Serial.println("[main] BT0 pressed");
         }
         return true;
@@ -30,13 +31,14 @@ void setup(void)
     Serial.setDebugOutput(true);
     Serial.println("[main] ElectricMeter booting");
 
-    pinMode(PIN_LED, OUTPUT);
-    // buzzer::init();
-    // buzzer_player::init();
-    // buzzer_player::tada();
+    led::init();
+    buzzer::init();
+    buzzer_player::init();
+    buzzer_player::tada();
     button::init();
     button::addHandler(on_button_event);
     ztw_ddsu666::init();
+    matrix::init();
 
     if (WIFI_SSID[0] == '\0' || WIFI_PASSWORD[0] == '\0')
     {
@@ -56,6 +58,7 @@ void setup(void)
             Serial.println("[wifi] connection failed!");
             break;
         }
+        led::update();
         delay(50);
         Serial.print(".");
     }
@@ -67,8 +70,10 @@ void setup(void)
 
 void loop(void)
 {
+    led::update();
     button::update();
     ztw_ddsu666::update();
+    matrix::update();
     wsclient::update();
     entities::update();
     delay(10);
