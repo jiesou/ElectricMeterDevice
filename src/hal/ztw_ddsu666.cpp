@@ -4,7 +4,8 @@
 
 namespace
 {
-    constexpr uint8_t ADDRESS = 1;
+    constexpr uint8_t METER_ADDRESSES[] = {1, 2, 3};
+    constexpr size_t METER_COUNT = sizeof(METER_ADDRESSES) / sizeof(METER_ADDRESSES[0]);
     constexpr uint8_t FUNCTION_READ = 0x03;
     constexpr uint32_t POLL_MS = 1000;
     constexpr uint32_t TIMEOUT_MS = 500;
@@ -20,6 +21,7 @@ namespace
     uint8_t rx[5 + 2 * 16];
     size_t echoLeft = 0; // 485 模块会把发出去的字节回灌到 RX，先吃掉
     size_t rxSize = 0;
+    size_t meterIndex = 0;
     size_t blockIndex = 0;
     bool waiting = false;
     uint32_t sentMs = 0;
@@ -49,7 +51,7 @@ namespace
 
     void send_request(const Block &block)
     {
-        uint8_t request[8] = {ADDRESS, FUNCTION_READ, uint8_t(block.start >> 8), uint8_t(block.start),
+        uint8_t request[8] = {ztw_ddsu666::meters[meterIndex].address, FUNCTION_READ, uint8_t(block.start >> 8), uint8_t(block.start),
                               uint8_t(block.count >> 8), uint8_t(block.count)};
         const uint16_t crc = crc16(request, 6);
         request[6] = crc & 0xFF; // CRC 低字节在前
@@ -67,7 +69,7 @@ namespace
     // 帧完整后校验并解析，返回是否成功
     bool parse(const Block &block)
     {
-        if (rx[0] != ADDRESS || rx[1] != FUNCTION_READ)
+        if (rx[0] != ztw_ddsu666::meters[meterIndex].address || rx[1] != FUNCTION_READ)
         {
             Serial.printf("[ddsu666] bad response: addr=%u fn=0x%02x\n", rx[0], rx[1]);
             return false;
@@ -83,37 +85,41 @@ namespace
         const uint8_t *data = rx + 3;
         if (block.start == 0x2000)
         {
-            ztw_ddsu666::reading.voltage_v = float_at(data, 0);
-            ztw_ddsu666::reading.current_a = float_at(data, 2);
-            ztw_ddsu666::reading.power_w = float_at(data, 4) * 1000; // 寄存器里 P/Q/S 单位是 kW/kvar/kVA
-            ztw_ddsu666::reading.reactive_var = float_at(data, 6) * 1000;
-            ztw_ddsu666::reading.apparent_va = float_at(data, 8) * 1000;
-            ztw_ddsu666::reading.power_factor = float_at(data, 10);
-            ztw_ddsu666::reading.frequency_hz = float_at(data, 14);
+            ztw_ddsu666::meters[meterIndex].voltage_v = float_at(data, 0);
+            ztw_ddsu666::meters[meterIndex].current_a = float_at(data, 2);
+            ztw_ddsu666::meters[meterIndex].power_w = float_at(data, 4) * 1000; // 寄存器里 P/Q/S 单位是 kW/kvar/kVA
+            ztw_ddsu666::meters[meterIndex].reactive_var = float_at(data, 6) * 1000;
+            ztw_ddsu666::meters[meterIndex].apparent_va = float_at(data, 8) * 1000;
+            ztw_ddsu666::meters[meterIndex].power_factor = float_at(data, 10);
+            ztw_ddsu666::meters[meterIndex].frequency_hz = float_at(data, 14);
         }
         else
         {
-            ztw_ddsu666::reading.energy_kwh = float_at(data, 0);
+            ztw_ddsu666::meters[meterIndex].energy_kwh = float_at(data, 0);
         }
         return true;
     }
 
     void fail(void)
     {
-        ztw_ddsu666::online = false;
+        ztw_ddsu666::meters[meterIndex].online = false;
         waiting = false;
         blockIndex = 0;
+        if (++meterIndex == METER_COUNT)
+            meterIndex = 0;
     }
 }
 
 namespace ztw_ddsu666
 {
-    Reading reading = {};
-    bool online = false;
+    Data meters[METER_COUNT] = {};
+    const size_t meter_count = METER_COUNT;
 
     void init(void)
     {
         Serial2.begin(BAUD, SERIAL_8N1, PIN_UART2_RX, PIN_UART2_TX);
+        for (size_t i = 0; i < METER_COUNT; i++)
+            meters[i].address = METER_ADDRESSES[i];
     }
 
     void update(void)
@@ -149,10 +155,13 @@ namespace ztw_ddsu666
                 if (++blockIndex == BLOCK_COUNT)
                 {
                     blockIndex = 0;
-                    online = true;
-                    Serial.printf("[ddsu666] U=%.2fV I=%.3fA P=%.1fW Q=%.1fvar S=%.1fVA PF=%.3f F=%.2fHz Ep=%.3fkWh\n",
-                                  reading.voltage_v, reading.current_a, reading.power_w, reading.reactive_var,
-                                  reading.apparent_va, reading.power_factor, reading.frequency_hz, reading.energy_kwh);
+                    Data &meter = meters[meterIndex];
+                    meter.online = true;
+                    Serial.printf("[ddsu666] addr=%u U=%.2fV I=%.3fA P=%.1fW Q=%.1fvar S=%.1fVA PF=%.3f F=%.2fHz Ep=%.3fkWh\n",
+                                  meter.address, meter.voltage_v, meter.current_a, meter.power_w, meter.reactive_var,
+                                  meter.apparent_va, meter.power_factor, meter.frequency_hz, meter.energy_kwh);
+                    if (++meterIndex == METER_COUNT)
+                        meterIndex = 0;
                 }
             }
             else if (now - sentMs >= TIMEOUT_MS)

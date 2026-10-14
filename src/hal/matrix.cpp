@@ -453,14 +453,14 @@ namespace matrix
         char buf[32];
         clear();
 
-        if (ztw_ddsu666::online)
-            snprintf(buf, sizeof(buf), "%.1fW", ztw_ddsu666::reading.power_w);
+        if (ztw_ddsu666::meters[0].online)
+            snprintf(buf, sizeof(buf), "%.1fW", ztw_ddsu666::meters[0].power_w);
         else
             snprintf(buf, sizeof(buf), "--W");
         drawUTF8(0, 12, buf);
 
-        if (ztw_ddsu666::online)
-            snprintf(buf, sizeof(buf), "%.2fkWh", ztw_ddsu666::reading.energy_kwh);
+        if (ztw_ddsu666::meters[0].online)
+            snprintf(buf, sizeof(buf), "%.2fkWh", ztw_ddsu666::meters[0].energy_kwh);
         else
             snprintf(buf, sizeof(buf), "--kWh");
         drawUTF8(0, 26, buf);

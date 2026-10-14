@@ -101,10 +101,10 @@ namespace entities
             return;
         lastUpdateMs = now;
 
-        if (ztw_ddsu666::online)
+        if (ztw_ddsu666::meters[0].online)
         {
-            kettle.power_w = roundf(ztw_ddsu666::reading.power_w * 10) / 10;
-            kettle.energy_kwh = roundf(ztw_ddsu666::reading.energy_kwh * 100) / 100;
+            kettle.power_w = roundf(ztw_ddsu666::meters[0].power_w * 10) / 10;
+            kettle.energy_kwh = roundf(ztw_ddsu666::meters[0].energy_kwh * 100) / 100;
         }
 
         if (!wsclient::isServerConnected)

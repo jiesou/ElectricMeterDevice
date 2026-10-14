@@ -45,7 +45,7 @@ namespace led
         const bool connected[BEATS] = {
             WiFi.status() == WL_CONNECTED,
             wsclient::isServerConnected,
-            ztw_ddsu666::online,
+            ztw_ddsu666::meters[0].online,
         };
 
         const uint32_t t = millis() % CYCLE_MS;

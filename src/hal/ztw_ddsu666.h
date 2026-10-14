@@ -1,4 +1,5 @@
 #pragma once
+#include <stddef.h>
 #include <stdint.h>
 
 // 正泰 DDSU666 单相导轨式电能表，RS485 在端子 24(A)/25(B)
@@ -6,8 +7,10 @@
 namespace ztw_ddsu666 {
     constexpr uint32_t BAUD = 9600;
 
-    struct Reading
+    struct Data
     {
+        uint8_t address;
+        bool online;
         float voltage_v;
         float current_a;
         float power_w;
@@ -18,8 +21,8 @@ namespace ztw_ddsu666 {
         float energy_kwh;
     };
 
-    extern Reading reading;
-    extern bool online; // 最近一轮读取是否成功
+    extern Data meters[];
+    extern const size_t meter_count;
 
     void init(void);
     void update(void);
