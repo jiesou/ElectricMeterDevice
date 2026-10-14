@@ -4,7 +4,7 @@
 #include "hal/ztw_ddsu666.h"
 #include "pins.h"
 
-// 兼容 Adafruit_GFX 的 64x32 1/16 扫描 HUB75 驱动，屏幕侧自带扫描逻辑
+// 32x64 竖版 1/16 扫描 HUB75 驱动，屏幕侧自带扫描逻辑
 namespace
 {
     constexpr uint32_t SPI_SPEED = 700000;
@@ -13,7 +13,6 @@ namespace
     SPIClass spi(HSPI);
     SPISettings spi_settings(SPI_SPEED, MSBFIRST, SPI_MODE0);
 
-    uint8_t rotation = 0;
     uint16_t fg_color = matrix::WHITE;
 
     // ---- U8g2 字体解码，参考 U8g2_for_Adafruit_GFX ----
@@ -136,7 +135,7 @@ namespace
 
             if (current > 0 && is_foreground)
                 for (uint8_t i = 0; i < current; i++)
-                    matrix::drawPixel(decode.target_x + lx + i, decode.target_y + ly, fg_color);
+                    matrix::canvas.drawPixel(decode.target_x + lx + i, decode.target_y + ly, fg_color);
 
             if (cnt < rem)
                 break;
@@ -291,13 +290,13 @@ namespace
     {
         pos %= PERIMETER;
         if (pos < matrix::HEIGHT)
-            matrix::drawPixel(0, matrix::HEIGHT - 1 - pos, color);
+            matrix::canvas.drawPixel(0, matrix::HEIGHT - 1 - pos, color);
         else if (pos < matrix::HEIGHT + matrix::WIDTH)
-            matrix::drawPixel(pos - matrix::HEIGHT, 0, color);
+            matrix::canvas.drawPixel(pos - matrix::HEIGHT, 0, color);
         else if (pos < 2 * matrix::HEIGHT + matrix::WIDTH)
-            matrix::drawPixel(matrix::WIDTH - 1, pos - matrix::HEIGHT - matrix::WIDTH, color);
+            matrix::canvas.drawPixel(matrix::WIDTH - 1, pos - matrix::HEIGHT - matrix::WIDTH, color);
         else
-            matrix::drawPixel(PERIMETER - 1 - pos, matrix::HEIGHT - 1, color);
+            matrix::canvas.drawPixel(PERIMETER - 1 - pos, matrix::HEIGHT - 1, color);
     }
 
     // 虚线段，anim_state 递增即为流动
@@ -312,32 +311,33 @@ namespace
 
 namespace matrix
 {
-    void drawPixel(int16_t x, int16_t y, uint16_t color)
+    Canvas canvas;
+
+    // 帧格式不变，仍写 64x32 帧缓冲；rotation 在这里做坐标重映射（同 Adafruit GFXcanvas16）
+    void Canvas::drawPixel(int16_t x, int16_t y, uint16_t color)
     {
-        int16_t nx = x, ny = y;
+        if (x < 0 || y < 0 || x >= _width || y >= _height)
+            return;
+
+        int16_t t;
         switch (rotation)
         {
         case 1:
-            nx = y;
-            ny = WIDTH - 1 - x;
+            t = x;
+            x = WIDTH - 1 - y;
+            y = t;
             break;
         case 2:
-            nx = WIDTH - 1 - x;
-            ny = HEIGHT - 1 - y;
+            x = WIDTH - 1 - x;
+            y = HEIGHT - 1 - y;
             break;
         case 3:
-            nx = HEIGHT - 1 - y;
-            ny = x;
+            t = x;
+            x = y;
+            y = HEIGHT - 1 - t;
             break;
         }
-        if (nx < 0 || nx >= WIDTH || ny < 0 || ny >= HEIGHT)
-            return;
-        framebuffer[ny][nx] = color;
-    }
-
-    void clear(void)
-    {
-        memset(framebuffer, 0, sizeof(framebuffer));
+        framebuffer[y][x] = color;
     }
 
     void init(void)
@@ -345,7 +345,8 @@ namespace matrix
         spi.begin(PIN_MATRIX_SCK, -1, PIN_MATRIX_MOSI, PIN_MATRIX_CS);
         pinMode(PIN_MATRIX_CS, OUTPUT);
         digitalWrite(PIN_MATRIX_CS, HIGH);
-        clear();
+        canvas.setRotation(ROTATION);
+        canvas.fillScreen(BLACK);
     }
 
     // 每次发一整帧，调用频率决定刷新率
@@ -356,14 +357,14 @@ namespace matrix
         delayMicroseconds(5);
 
         // 从机按大端收 uint16_t，ESP32 是小端，发之前逐像素换字节序
-        for (int y = 0; y < HEIGHT; y++)
-            for (int x = 0; x < WIDTH; x++)
+        for (int y = 0; y < matrix::HEIGHT; y++)
+            for (int x = 0; x < matrix::WIDTH; x++)
                 framebuffer[y][x] = __builtin_bswap16(framebuffer[y][x]);
 
         spi.transferBytes((uint8_t *)framebuffer, nullptr, sizeof(framebuffer));
 
-        for (int y = 0; y < HEIGHT; y++)
-            for (int x = 0; x < WIDTH; x++)
+        for (int y = 0; y < matrix::HEIGHT; y++)
+            for (int x = 0; x < matrix::WIDTH; x++)
                 framebuffer[y][x] = __builtin_bswap16(framebuffer[y][x]);
 
         delayMicroseconds(2);
@@ -405,7 +406,7 @@ namespace matrix
 
     void drawUTF8Centered(int16_t y, const char *str)
     {
-        int16_t x = (WIDTH - utf8Width(str)) / 2;
+        int16_t x = (canvas.width() - utf8Width(str)) / 2;
         drawUTF8(x < 0 ? 0 : x, y, str);
     }
 
@@ -433,7 +434,7 @@ namespace matrix
         dashedBorder(BLUE, anim_state);
     }
 
-    // 只显示当前功率和已用电能，刷新频率受限于屏幕发送一帧的耗时
+    // 三只电表竖排：每只一行功率、一行电量
     void update(void)
     {
         static uint32_t last_ms = 0;
@@ -446,24 +447,37 @@ namespace matrix
 
         if (!ready)
         {
-            setFont(u8g2_font_wqy12_t_gb2312);
+            setFont(u8g2_font_4x6_tf);
             ready = true;
         }
 
-        char buf[32];
-        clear();
+        canvas.fillScreen(BLACK);
+        for (size_t i = 0; i < ztw_ddsu666::meter_count; i++)
+        {
+            const ztw_ddsu666::Data &meter = ztw_ddsu666::meters[i];
+            const int16_t y = i * 21; // 三块均分 64px 高度
+            char power[16], energy[16];
 
-        if (ztw_ddsu666::meters[0].online)
-            snprintf(buf, sizeof(buf), "%.1fW", ztw_ddsu666::meters[0].power_w);
-        else
-            snprintf(buf, sizeof(buf), "--W");
-        drawUTF8(0, 12, buf);
+            if (!meter.online)
+                snprintf(power, sizeof(power), "%u:--W", meter.address);
+            else if (meter.power_w < 1000)
+                snprintf(power, sizeof(power), "%u:%.1fW", meter.address, meter.power_w);
+            else
+                snprintf(power, sizeof(power), "%u:%.0fW", meter.address, meter.power_w);
 
-        if (ztw_ddsu666::meters[0].online)
-            snprintf(buf, sizeof(buf), "%.2fkWh", ztw_ddsu666::meters[0].energy_kwh);
-        else
-            snprintf(buf, sizeof(buf), "--kWh");
-        drawUTF8(0, 26, buf);
+            if (!meter.online)
+                snprintf(energy, sizeof(energy), "--kWh");
+            else if (meter.energy_kwh < 1000)
+                snprintf(energy, sizeof(energy), "%.1fkWh", meter.energy_kwh);
+            else
+                snprintf(energy, sizeof(energy), "%.0fkWh", meter.energy_kwh);
+
+            setColor(meter.online ? GREEN : RED);
+            drawUTF8(0, y + 8, power);
+
+            setColor(WHITE);
+            drawUTF8(0, y + 17, energy);
+        }
 
         scanDisplay();
     }
