@@ -8,6 +8,7 @@
 #include "hal/buttons.h"
 #include "hal/led.h"
 #include "hal/matrix.h"
+#include "hal/time_ntp.h"
 #include "hal/ztw_ddsu666.h"
 #include "pins.h"
 #include "firmware_config.h"
@@ -65,6 +66,7 @@ void setup(void)
     Serial.println("[wifi] connected");
 
     wsclient::init();
+    time_ntp::init();
     entities::init();
 }
 
@@ -74,6 +76,8 @@ void loop(void)
     button::update();
     ztw_ddsu666::update();
     matrix::update();
+
+    time_ntp::update();
     wsclient::update();
     entities::update();
     delay(10);
