@@ -52,6 +52,11 @@ namespace led
         const uint32_t beat = t / BEAT_MS;
         const bool lit = beat < BEATS && t % BEAT_MS < ON_MS;
         const uint32_t duty = !lit ? 0 : connected[beat] ? DUTY_BRIGHT : DUTY_DIM;
+
+        static uint32_t lastDuty = UINT32_MAX;
+        if (duty == lastDuty)
+            return;
+        lastDuty = duty;
         ledc_set_duty(LEDC_SPD, LEDC_CH, duty);
         ledc_update_duty(LEDC_SPD, LEDC_CH);
     }
