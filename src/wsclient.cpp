@@ -4,7 +4,7 @@
 
 namespace
 {
-    constexpr uint32_t ALIVE_MS = 30 * 1000; // 协议定的应用层心跳间隔
+    constexpr uint32_t ALIVE_MS = 3 * 1000; // 协议定的应用层心跳间隔
     uint32_t lastAliveMs = 0;
 
     WebSocketsClient ws;
