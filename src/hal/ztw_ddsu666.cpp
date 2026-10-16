@@ -4,7 +4,6 @@
 
 namespace
 {
-    constexpr size_t METER_COUNT = 3;
     constexpr uint8_t FUNCTION_READ = 0x03;
     constexpr uint16_t POWER_REG = 0x2004;  // 瞬时有功功率，寄存器里单位是 kW
     constexpr uint16_t ENERGY_REG = 0x4000; // 有功总电能，kWh

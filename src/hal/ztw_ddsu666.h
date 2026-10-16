@@ -5,6 +5,7 @@
 
 // 寄存器表见 .agents/notes/research/电能表数据手册/ZTW0.464.0090
 namespace ztw_ddsu666 {
+    constexpr size_t METER_COUNT = 3;
     struct Data
     {
         bool online;
