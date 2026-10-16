@@ -18,6 +18,8 @@ namespace matrix
         lastUpdate = now;
 
         rgb_matrix::canvas.fillScreen(rgb_matrix::BLACK);
+        drawRainbow();
+
         for (size_t i = 0; i < ztw_ddsu666::METER_COUNT; i++)
         {
             const int16_t y = i * 21; // 三块均分 64px 高度
@@ -25,10 +27,10 @@ namespace matrix
             formatMeter(i + 1, ztw_ddsu666::meters[i], power, energy);
 
             rgb_matrix::setColor(ztw_ddsu666::meters[i].online ? rgb_matrix::GREEN : rgb_matrix::RED);
-            rgb_matrix::drawUTF8(0, y + 8, power);
+            rgb_matrix::drawUTF8(2, y + 8, power);
 
             rgb_matrix::setColor(rgb_matrix::WHITE);
-            rgb_matrix::drawUTF8(0, y + 17, energy);
+            rgb_matrix::drawUTF8(2, y + 17, energy);
         }
 
         rgb_matrix::scanDisplay();
