@@ -1,89 +1,54 @@
 #include "entities.h"
+#include <Arduino.h>
 #include <ArduinoJson.h>
-#include "hal/ztw_ddsu666.h"
+#include <deque>
+#include <vector>
 #include "wsclient.h"
+#include "hal/time_ntp.h"
+#include "hal/ztw_ddsu666.h"
+
+namespace entities
+{
+    std::vector<Entity> data = {
+        {"light", "灯", "switch", false, 0, 0, 0},
+        {"light-meter", "灯功率", "meter", false, 0, 0, 0},
+        {"kettle", "热水壶", "switch", false, 0, 0, 0},
+        {"kettle-meter", "热水壶功率", "meter", false, 0, 0, 0},
+        {"dryer", "吹风机", "switch", false, 0, 0, 0},
+        {"dryer-meter", "吹风机功率", "meter", false, 0, 0, 0},
+    };
+
+    std::deque<Entity> queue;
+}
 
 namespace
 {
-    constexpr const char *SWITCH_ID = "kettle";
-    constexpr const char *METER_ID = "kettle-meter";
+    String wsMessageStr;
 
-    struct Reading
-    {
-        bool on;
-        float power_w;
-        float energy_kwh;
-    };
-
-    bool declared = false;
-    Reading kettle = {false, 0, 0};
-    Reading sent = {false, 0, 0};
-
-    void send(JsonDocument &doc)
-    {
-        String out;
-        serializeJson(doc, out);
-        wsclient::send_message(out);
-    }
-
-    // 只在读数变了的时候发，没提到的字段服务器保持原样
-    void send_entities(bool declare)
-    {
-        const bool switch_changed = declare || kettle.on != sent.on;
-        const bool meter_changed = declare || kettle.power_w != sent.power_w || kettle.energy_kwh != sent.energy_kwh;
-        if (!switch_changed && !meter_changed)
-            return;
-
-        JsonDocument doc;
-        doc["type"] = "pub_entities";
-        JsonArray list = doc["entities"].to<JsonArray>();
-
-        if (switch_changed)
-        {
-            JsonObject e = list.add<JsonObject>();
-            e["id"] = SWITCH_ID;
-            if (declare)
-            {
-                e["name"] = "热水壶";
-                e["type"] = "switch";
-            }
-            e["state"] = kettle.on;
-        }
-        if (meter_changed)
-        {
-            JsonObject e = list.add<JsonObject>();
-            e["id"] = METER_ID;
-            if (declare)
-            {
-                e["name"] = "热水壶功率";
-                e["type"] = "meter";
-            }
-            e["powerW"] = kettle.power_w;
-            e["energyKwh"] = kettle.energy_kwh;
-        }
-        send(doc);
-        sent = kettle;
-    }
-
-    // 服务器下通断令 {"type":"pub_action_switch","id":"kettle","state":true}
     void on_message(const String &message)
     {
         JsonDocument doc;
         if (deserializeJson(doc, message))
             return;
-        if (strcmp(doc["type"] | "", "pub_action_switch") != 0 || strcmp(doc["id"] | "", SWITCH_ID) != 0)
+        if (strcmp(doc["type"] | "", "pub_action_switch") != 0)
             return;
 
-        kettle.on = doc["state"] | false;
-        send_entities(false);
+        for (Entity &e : entities::data)
+        {
+            if (strcmp(doc["id"] | "", e.id) != 0)
+                continue;
 
-        JsonDocument ack;
-        ack["type"] = "ack_action_switch";
-        ack["id"] = SWITCH_ID;
-        ack["state"] = kettle.on;
-        send(ack);
+            e.state = doc["state"] | false;
+
+            JsonDocument ack;
+            ack["type"] = "ack_action_switch";
+            ack["id"] = e.id;
+            ack["state"] = e.state;
+
+            serializeJson(ack, wsMessageStr);
+            wsclient::send_message(wsMessageStr);
+        }
     }
-
 }
 
 namespace entities
@@ -91,32 +56,66 @@ namespace entities
     void init(void)
     {
         wsclient::on_message(on_message);
+
+        // declare entities
+        JsonDocument doc;
+        doc["type"] = "pub_entities";
+        JsonArray list = doc["entities"].to<JsonArray>();
+        for (const Entity &e : data)
+        {
+            JsonObject o = list.add<JsonObject>();
+            o["id"] = e.id;
+            o["name"] = e.name;
+            o["type"] = e.type;
+        }
+
+        serializeJson(doc, wsMessageStr);
+        wsclient::send_message(wsMessageStr);
+
+        ztw_ddsu666::on_data([](size_t i)
+                             {
+                    const ztw_ddsu666::Data &data = ztw_ddsu666::meters[i];
+        const Entity &profile = entities::data[i * 2 + 1];
+
+        Entity read = {};
+        read.id = profile.id;
+        read.powerW = data.power_w;
+        read.energyKwh = data.energy_kwh;
+        read.ts = time(nullptr);
+        entities::queue.push_back(read); });
     }
 
     void update(void)
     {
-        const uint32_t now = millis();
-        static uint32_t lastUpdateMs = 0;
-        if (now - lastUpdateMs < 1000)
+        static uint32_t lastUpdate = 0;
+        uint32_t now = millis();
+        if (now - lastUpdate < 1000)
             return;
-        lastUpdateMs = now;
+        lastUpdate = now;
 
-        if (ztw_ddsu666::meters[0].online)
+        if (!queue.empty())
         {
-            kettle.power_w = roundf(ztw_ddsu666::meters[0].power_w * 10) / 10;
-            kettle.energy_kwh = roundf(ztw_ddsu666::meters[0].energy_kwh * 100) / 100;
-        }
+            JsonDocument doc;
+            doc["type"] = "pub_entities";
+            doc["ts"] = time_ntp::now();
+            JsonArray list = doc["entities"].to<JsonArray>();
+            for (const Entity &e : queue)
+            {
+                JsonObject o = list.add<JsonObject>();
+                o["id"] = e.id;
+                o["ts"] = e.ts;
+                if (e.type[0] == 's') // "switch"
+                    o["state"] = e.state;
+                else
+                {
+                    o["powerW"] = e.powerW;
+                    o["energyKwh"] = e.energyKwh;
+                }
+            }
+            queue.clear();
 
-        if (!wsclient::isServerConnected)
-        {
-            declared = false;
-            return;
+            serializeJson(doc, wsMessageStr);
+            wsclient::send_message(wsMessageStr);
         }
-        if (!declared)
-        {
-            declared = true;
-            send_entities(true);
-        }
-        send_entities(false);
     }
 }

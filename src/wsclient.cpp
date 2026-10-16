@@ -26,10 +26,11 @@ namespace wsclient
         ws.loop();
     }
 
-    void send_message(const String &message)
+    // 没连上会直接失败，发不出去
+    bool send_message(const String &message)
     {
         Serial.println("[wsclient] Sending message: " + message);
-        ws.sendTXT(message.c_str(), message.length());
+        return ws.sendTXT(message.c_str(), message.length());
     }
 
     void init(void)

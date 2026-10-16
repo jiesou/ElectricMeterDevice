@@ -7,6 +7,6 @@ namespace wsclient
 
     void init(void);
     void update(void);
-    void send_message(const String &message);
+    bool send_message(const String &message);
     void on_message(void (*callback)(const String &message));
 }

@@ -80,5 +80,4 @@ void loop(void)
     time_ntp::update();
     wsclient::update();
     entities::update();
-    delay(10);
 }
