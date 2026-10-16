@@ -1,32 +1,41 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
-// 正泰 DDSU666 单相导轨式电能表，RS485 在端子 24(A)/25(B)
-// Modbus-RTU、地址 1、9600 8N1，寄存器表见 .agents/notes/research/电能表数据手册/ZTW0.464.0090
+// 寄存器表见 .agents/notes/research/电能表数据手册/ZTW0.464.0090
 namespace ztw_ddsu666 {
-    constexpr uint32_t BAUD = 9600;
-
     struct Data
     {
-        uint8_t address;
         bool online;
-        float voltage_v;
-        float current_a;
         float power_w;
-        float reactive_var;
-        float apparent_va;
-        float power_factor;
-        float frequency_hz;
         float energy_kwh;
     };
-
-    constexpr size_t METER_COUNT = 3;
     extern Data meters[METER_COUNT];
 
-    // 每只表读全一轮就回调一次，index 是 meters 下标
     void on_data(void (*callback)(size_t index));
 
     void init(void);
     void update(void);
+
+    inline uint16_t crc16(const uint8_t *data, size_t size)
+    {
+        uint16_t crc = 0xFFFF;
+        while (size--)
+        {
+            crc ^= *data++;
+            for (int i = 0; i < 8; i++)
+                crc = (crc & 1) ? (crc >> 1) ^ 0xA001 : crc >> 1;
+        }
+        return crc;
+    }
+
+    // 寄存器区开头 4 字节就是一个 float，大端
+    inline float float_at(const uint8_t *data)
+    {
+        const uint32_t bits = uint32_t(data[0]) << 24 | uint32_t(data[1]) << 16 | uint32_t(data[2]) << 8 | data[3];
+        float value;
+        memcpy(&value, &bits, sizeof(value));
+        return value;
+    }
 }
