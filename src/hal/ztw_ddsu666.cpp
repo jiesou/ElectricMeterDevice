@@ -61,42 +61,46 @@ namespace ztw_ddsu666
         static uint16_t reg = POWER_REG; // 每只表先读功率，再读电能
         static uint8_t rx[FRAME_SIZE];   // 485 模块会把发出去的 8 字节回灌到 RX
         static uint8_t rxSize = 0;
+        static bool waiting = false;
         static uint32_t sentMs = 0;
 
-        if (!sentMs) // 上电第一帧
+        if (waiting)
         {
-            send_request(addr, reg);
-            sentMs = millis();
-            return;
+            while (Serial2.available() && rxSize < FRAME_SIZE)
+                rx[rxSize++] = Serial2.read();
+
+            const bool full = rxSize == FRAME_SIZE;
+            if (!full && millis() - sentMs < 500) // timeout
+                return;
+
+            rxSize = 0;
+            waiting = false;
+
+            const bool success = parse(addr, reg, rx + 8);
+            if (!full || !success)
+            {
+                Data &meter = meters[addr - 1];
+                if (meter.online) // 掉线只报一次，免得每 500ms 刷一行日志
+                    Serial.printf("[ddsu666] addr=%u offline\n", addr);
+                meter.online = false;
+                addr = addr % METER_COUNT + 1;
+                reg = POWER_REG;
+            }
+            else if (reg == POWER_REG)
+                reg = ENERGY_REG; // 功率读到了，接着读这只表的电能
+            else
+            {
+                meters[addr - 1].online = true;
+                if (onDataCallback)
+                    onDataCallback(addr - 1);
+                addr = addr % METER_COUNT + 1;
+                reg = POWER_REG;
+            }
         }
 
-        while (Serial2.available() && rxSize < FRAME_SIZE)
-            rx[rxSize++] = Serial2.read();
-
-        const bool full = rxSize == FRAME_SIZE;
-        rxSize = 0;
-        if (!full && millis() - sentMs < 500) // timeout
-            return;
-
-        const bool success = parse(addr, reg, rx + 8);
-        if (!full || !success)
-        {
-            Data &meter = meters[addr - 1];
-            if (meter.online) // 掉线只报一次，免得每 500ms 刷一行日志
-                Serial.printf("[ddsu666] addr=%u offline\n", addr);
-            meter.online = false;
-            addr = addr % METER_COUNT + 1;
-            reg = POWER_REG;
-        }
-        else if (reg == POWER_REG)
-            reg = ENERGY_REG; // 功率读到了，接着读这只表的电能
-        else
-        {
-            meters[addr - 1].online = true;
-            if (onDataCallback)
-                onDataCallback(addr - 1);
-            addr = addr % METER_COUNT + 1;
-            reg = POWER_REG;
-        }
+        // 上一帧处理完就接着发下一帧
+        send_request(addr, reg);
+        sentMs = millis();
+        waiting = true;
     }
 }
