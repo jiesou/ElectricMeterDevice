@@ -30,6 +30,7 @@ namespace
         JsonDocument doc;
         if (deserializeJson(doc, message))
             return;
+
         if (strcmp(doc["type"] | "", "pub_action_switch") != 0)
             return;
 
@@ -57,28 +58,15 @@ namespace entities
     {
         wsclient::on_message(on_message);
 
-        // declare entities
-        JsonDocument doc;
-        doc["type"] = "pub_entities";
-        JsonArray list = doc["entities"].to<JsonArray>();
-        for (const Entity &e : data)
-        {
-            JsonObject o = list.add<JsonObject>();
-            o["id"] = e.id;
-            o["name"] = e.name;
-            o["type"] = e.type;
-        }
-
-        serializeJson(doc, wsMessageStr);
-        wsclient::send_message(wsMessageStr);
+        // 声明初始化数据
+        queue.insert(queue.end(), data.begin(), data.end());
 
         ztw_ddsu666::on_data([](size_t i)
                              {
-                    const ztw_ddsu666::Data &data = ztw_ddsu666::meters[i];
+        const ztw_ddsu666::Data &data = ztw_ddsu666::meters[i];
         const Entity &profile = entities::data[i * 2 + 1];
 
-        Entity read = {};
-        read.id = profile.id;
+        Entity read = profile; // 读数复用申报那条的 id/name/type
         read.powerW = data.power_w;
         read.energyKwh = data.energy_kwh;
         read.ts = time(nullptr);
@@ -93,29 +81,33 @@ namespace entities
             return;
         lastUpdate = now;
 
-        if (!queue.empty())
-        {
-            JsonDocument doc;
-            doc["type"] = "pub_entities";
-            doc["ts"] = time_ntp::now();
-            JsonArray list = doc["entities"].to<JsonArray>();
-            for (const Entity &e : queue)
-            {
-                JsonObject o = list.add<JsonObject>();
-                o["id"] = e.id;
-                o["ts"] = e.ts;
-                if (e.type[0] == 's') // "switch"
-                    o["state"] = e.state;
-                else
-                {
-                    o["powerW"] = e.powerW;
-                    o["energyKwh"] = e.energyKwh;
-                }
-            }
-            queue.clear();
+        if (!wsclient::isServerConnected || queue.empty())
+            return; // 没连上就留着，连上了再发
 
-            serializeJson(doc, wsMessageStr);
-            wsclient::send_message(wsMessageStr);
+        JsonDocument doc;
+        doc["type"] = "pub_entities";
+        doc["ts"] = time_ntp::now();
+        JsonArray list = doc["entities"].to<JsonArray>();
+        for (const Entity &e : queue)
+        {
+            // 把队列里的东西合并到同一个pub_entities请求
+            JsonObject o = list.add<JsonObject>();
+            o["id"] = e.id;
+            o["name"] = e.name;
+            o["type"] = e.type;
+            if (e.ts) // 申报那条还没读数，没有 ts
+                o["ts"] = e.ts;
+            if (e.type[0] == 's') // "switch"
+                o["state"] = e.state;
+            else
+            {
+                o["powerW"] = e.powerW;
+                o["energyKwh"] = e.energyKwh;
+            }
         }
+        queue.clear();
+
+        serializeJson(doc, wsMessageStr);
+        wsclient::send_message(wsMessageStr);
     }
 }
