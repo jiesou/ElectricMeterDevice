@@ -14,6 +14,7 @@ namespace rgb_matrix
 
     constexpr uint16_t BLACK = 0x0000;
     constexpr uint16_t WHITE = 0xFFFF;
+    constexpr uint16_t GRAY = 0x8410;
     constexpr uint16_t RED = 0xF800;
     constexpr uint16_t YELLOW = 0xFFE0;
     constexpr uint16_t GREEN = 0x07E0;
@@ -25,7 +26,7 @@ namespace rgb_matrix
     class Canvas : public Adafruit_GFX
     {
     public:
-        Canvas(void) : Adafruit_GFX(WIDTH, HEIGHT) {}
+        Canvas(void) : Adafruit_GFX(rgb_matrix::WIDTH, rgb_matrix::HEIGHT) {}
         void drawPixel(int16_t x, int16_t y, uint16_t color) override;
     };
 

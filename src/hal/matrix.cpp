@@ -36,6 +36,11 @@ namespace matrix
         for (size_t i = 0; i < ztw_ddsu666::METER_COUNT; i++)
         {
             const int16_t y = TOP + i * ROW;
+
+            // 行顶那条 1px 横线就是这一路的闸：绿=合，灰=断
+            const bool on = entities::data[i * 2].state;
+            rgb_matrix::canvas.drawFastHLine(2, y, 28, on ? rgb_matrix::GREEN : rgb_matrix::GRAY);
+
             char power[16], energy[16];
             formatMeter(i + 1, ztw_ddsu666::meters[i], power, energy);
 
