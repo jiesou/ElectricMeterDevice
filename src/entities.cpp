@@ -19,6 +19,7 @@ namespace entities
     };
 
     std::deque<Entity> queue;
+    int peopleCount = 0;
 }
 
 namespace
@@ -30,6 +31,15 @@ namespace
         JsonDocument doc;
         if (deserializeJson(doc, message))
             return;
+
+        // 服务器把房间人数推下来：大屏算的净数照收，不自己拿进出相减
+        if (strcmp(doc["type"] | "", "pub_entities") == 0)
+        {
+            for (JsonObject e : doc["entities"].as<JsonArray>())
+                if (strcmp(e["type"] | "", "people-counter") == 0)
+                    entities::peopleCount = e["netCount"] | 0;
+            return;
+        }
 
         if (strcmp(doc["type"] | "", "pub_action_switch") != 0)
             return;

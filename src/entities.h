@@ -19,6 +19,7 @@ namespace entities
 {
     extern std::vector<Entity> data;
     extern std::deque<Entity> queue;
+    extern int peopleCount; // 房间人数，服务器推下来的净数，大屏说多少就是多少
 
     void init(void);
     void update(void);
