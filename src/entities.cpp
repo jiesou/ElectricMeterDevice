@@ -4,6 +4,7 @@
 #include <deque>
 #include <vector>
 #include "wsclient.h"
+#include "hal/relay.h"
 #include "hal/time_ntp.h"
 #include "hal/ztw_ddsu666.h"
 
@@ -44,20 +45,27 @@ namespace
         if (strcmp(doc["type"] | "", "pub_action_switch") != 0)
             return;
 
-        for (Entity &e : entities::data)
+        // 实体表是 开关/电表 交替排列，第 i 只开关就是第 i 路继电器
+        for (size_t i = 0; i < entities::data.size(); i++)
         {
+            Entity &e = entities::data[i];
             if (strcmp(doc["id"] | "", e.id) != 0)
                 continue;
+            if (strcmp(e.type, "switch") != 0)
+                return; // 只有开关能被操作
 
             e.state = doc["state"] | false;
+            relay::set(i / 2, e.state);
 
             JsonDocument ack;
             ack["type"] = "ack_action_switch";
             ack["id"] = e.id;
             ack["state"] = e.state;
+            ack["ts"] = time_ntp::now();
 
             serializeJson(ack, wsMessageStr);
             wsclient::send_message(wsMessageStr);
+            return;
         }
     }
 }

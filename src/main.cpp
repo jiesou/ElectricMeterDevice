@@ -8,6 +8,7 @@
 #include "hal/buttons.h"
 #include "hal/led.h"
 #include "hal/matrix.h"
+#include "hal/relay.h"
 #include "hal/time_ntp.h"
 #include "hal/ztw_ddsu666.h"
 #include "pins.h"
@@ -38,6 +39,7 @@ void setup(void)
     buzzer_player::tada();
     button::init();
     button::addHandler(on_button_event);
+    relay::init();
     ztw_ddsu666::init();
     matrix::init();
 
