@@ -437,13 +437,8 @@ namespace matrix
     // 三只电表竖排：每只一行功率、一行电量
     void update(void)
     {
-        static uint32_t last_ms = 0;
         static bool ready = false;
-
-        const uint32_t now = millis();
-        if (ready && now - last_ms < 100)
-            return;
-        last_ms = now;
+        static char last[ztw_ddsu666::METER_COUNT][2][16] = {};
 
         if (!ready)
         {
@@ -451,32 +446,45 @@ namespace matrix
             ready = true;
         }
 
-        canvas.fillScreen(BLACK);
-        for (size_t i = 0; i < ztw_ddsu666::meter_count; i++)
+        // 读数没变就不重画，免得整屏闪烁
+        char power[ztw_ddsu666::METER_COUNT][16], energy[ztw_ddsu666::METER_COUNT][16];
+        bool changed = false;
+        for (size_t i = 0; i < ztw_ddsu666::METER_COUNT; i++)
         {
             const ztw_ddsu666::Data &meter = ztw_ddsu666::meters[i];
-            const int16_t y = i * 21; // 三块均分 64px 高度
-            char power[16], energy[16];
 
             if (!meter.online)
-                snprintf(power, sizeof(power), "%u:--W", meter.address);
+                snprintf(power[i], sizeof(power[i]), "%u:--W", meter.address);
             else if (meter.power_w < 1000)
-                snprintf(power, sizeof(power), "%u:%.1fW", meter.address, meter.power_w);
+                snprintf(power[i], sizeof(power[i]), "%u:%.1fW", meter.address, meter.power_w);
             else
-                snprintf(power, sizeof(power), "%u:%.0fW", meter.address, meter.power_w);
+                snprintf(power[i], sizeof(power[i]), "%u:%.0fW", meter.address, meter.power_w);
 
             if (!meter.online)
-                snprintf(energy, sizeof(energy), "--kWh");
+                snprintf(energy[i], sizeof(energy[i]), "--kWh");
             else if (meter.energy_kwh < 1000)
-                snprintf(energy, sizeof(energy), "%.1fkWh", meter.energy_kwh);
+                snprintf(energy[i], sizeof(energy[i]), "%.1fkWh", meter.energy_kwh);
             else
-                snprintf(energy, sizeof(energy), "%.0fkWh", meter.energy_kwh);
+                snprintf(energy[i], sizeof(energy[i]), "%.0fkWh", meter.energy_kwh);
 
-            setColor(meter.online ? GREEN : RED);
-            drawUTF8(0, y + 8, power);
+            if (strcmp(power[i], last[i][0]) != 0 || strcmp(energy[i], last[i][1]) != 0)
+                changed = true;
+        }
+        if (!changed)
+            return;
+
+        canvas.fillScreen(BLACK);
+        for (size_t i = 0; i < ztw_ddsu666::METER_COUNT; i++)
+        {
+            const int16_t y = i * 21; // 三块均分 64px 高度
+            memcpy(last[i][0], power[i], sizeof(power[i]));
+            memcpy(last[i][1], energy[i], sizeof(energy[i]));
+
+            setColor(ztw_ddsu666::meters[i].online ? GREEN : RED);
+            drawUTF8(0, y + 8, power[i]);
 
             setColor(WHITE);
-            drawUTF8(0, y + 17, energy);
+            drawUTF8(0, y + 17, energy[i]);
         }
 
         scanDisplay();

@@ -4,10 +4,9 @@
 
 namespace
 {
-    constexpr uint8_t METER_ADDRESSES[] = {1, 2, 3};
-    constexpr size_t METER_COUNT = sizeof(METER_ADDRESSES) / sizeof(METER_ADDRESSES[0]);
+    // 表地址，登录 meters 的下标即数组下标
+    constexpr uint8_t METER_ADDRESSES[ztw_ddsu666::METER_COUNT] = {1, 2, 3};
     constexpr uint8_t FUNCTION_READ = 0x03;
-    constexpr uint32_t POLL_MS = 1000;
     constexpr uint32_t TIMEOUT_MS = 500;
 
     struct Block
@@ -25,7 +24,7 @@ namespace
     size_t blockIndex = 0;
     bool waiting = false;
     uint32_t sentMs = 0;
-    uint32_t pollMs = 0;
+    void (*dataCallback)(size_t index) = nullptr;
 
     uint16_t crc16(const uint8_t *data, size_t size)
     {
@@ -70,17 +69,11 @@ namespace
     bool parse(const Block &block)
     {
         if (rx[0] != ztw_ddsu666::meters[meterIndex].address || rx[1] != FUNCTION_READ)
-        {
-            Serial.printf("[ddsu666] bad response: addr=%u fn=0x%02x\n", rx[0], rx[1]);
             return false;
-        }
         const size_t dataSize = 2 * block.count;
         const size_t frameSize = 5 + dataSize;
         if (rx[2] != dataSize || crc16(rx, frameSize - 2) != uint16_t(rx[frameSize - 2] | rx[frameSize - 1] << 8))
-        {
-            Serial.println("[ddsu666] bad byte count or CRC");
             return false;
-        }
 
         const uint8_t *data = rx + 3;
         if (block.start == 0x2000)
@@ -100,26 +93,35 @@ namespace
         return true;
     }
 
+    // 掉线只报一次，免得每 132ms 刷一行日志把串口堵住
     void fail(void)
     {
+        if (ztw_ddsu666::meters[meterIndex].online)
+        {
+            Serial.printf("[ddsu666] addr=%u offline\n", ztw_ddsu666::meters[meterIndex].address);
+        }
         ztw_ddsu666::meters[meterIndex].online = false;
         waiting = false;
         blockIndex = 0;
-        if (++meterIndex == METER_COUNT)
+        if (++meterIndex == ztw_ddsu666::METER_COUNT)
             meterIndex = 0;
     }
 }
 
 namespace ztw_ddsu666
 {
-    Data meters[METER_COUNT] = {};
-    const size_t meter_count = METER_COUNT;
+    Data meters[ztw_ddsu666::METER_COUNT] = {};
 
     void init(void)
     {
         Serial2.begin(BAUD, SERIAL_8N1, PIN_UART2_RX, PIN_UART2_TX);
-        for (size_t i = 0; i < METER_COUNT; i++)
+        for (size_t i = 0; i < ztw_ddsu666::METER_COUNT; i++)
             meters[i].address = METER_ADDRESSES[i];
+    }
+
+    void on_data(void (*callback)(size_t index))
+    {
+        dataCallback = callback;
     }
 
     void update(void)
@@ -144,10 +146,7 @@ namespace ztw_ddsu666
             if (rxSize >= 2 && rxSize >= expected)
             {
                 if (isException)
-                {
-                    Serial.printf("[ddsu666] exception code %u\n", rx[2]);
                     return fail();
-                }
                 if (!parse(block))
                     return fail();
 
@@ -155,29 +154,21 @@ namespace ztw_ddsu666
                 if (++blockIndex == BLOCK_COUNT)
                 {
                     blockIndex = 0;
-                    Data &meter = meters[meterIndex];
-                    meter.online = true;
-                    Serial.printf("[ddsu666] addr=%u U=%.2fV I=%.3fA P=%.1fW Q=%.1fvar S=%.1fVA PF=%.3f F=%.2fHz Ep=%.3fkWh\n",
-                                  meter.address, meter.voltage_v, meter.current_a, meter.power_w, meter.reactive_var,
-                                  meter.apparent_va, meter.power_factor, meter.frequency_hz, meter.energy_kwh);
-                    if (++meterIndex == METER_COUNT)
+                    meters[meterIndex].online = true;
+                    if (dataCallback)
+                        dataCallback(meterIndex);
+                    if (++meterIndex == ztw_ddsu666::METER_COUNT)
                         meterIndex = 0;
                 }
             }
             else if (now - sentMs >= TIMEOUT_MS)
             {
-                Serial.printf("[ddsu666] timeout, got %u bytes\n", rxSize);
                 fail();
             }
             return;
         }
 
-        if (blockIndex == 0)
-        {
-            if (now - pollMs < POLL_MS)
-                return;
-            pollMs = now;
-        }
+        // 上一帧一回来就接着发下一帧，不设人为间隔
         send_request(BLOCKS[blockIndex]);
     }
 }

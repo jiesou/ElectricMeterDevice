@@ -21,8 +21,11 @@ namespace ztw_ddsu666 {
         float energy_kwh;
     };
 
-    extern Data meters[];
-    extern const size_t meter_count;
+    constexpr size_t METER_COUNT = 3;
+    extern Data meters[METER_COUNT];
+
+    // 每只表读全一轮就回调一次，index 是 meters 下标
+    void on_data(void (*callback)(size_t index));
 
     void init(void);
     void update(void);
