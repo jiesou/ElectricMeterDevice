@@ -98,6 +98,7 @@ namespace ztw_ddsu666
             }
         }
 
+        delay(30); // 帧间静默 30ms
         // 上一帧处理完就接着发下一帧
         send_request(addr, reg);
         sentMs = millis();
