@@ -39,7 +39,7 @@ namespace wsclient
         uint8_t mac[6];
         esp_read_mac(mac, ESP_MAC_WIFI_STA);
         char path[64];
-        snprintf(path, sizeof(path), "%s?device_id=esp-%02x%02x%02x", WS_SERVER_PATH, mac[0], mac[1], mac[2]);
+        snprintf(path, sizeof(path), "%s?device_id=%02x%02x%02x", WS_SERVER_PATH, mac[0], mac[1], mac[2]);
         Serial.printf("[wsclient] path = %s\n", path);
 
         ws.setReconnectInterval(1000);
