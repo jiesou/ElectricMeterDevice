@@ -124,6 +124,7 @@ namespace entities
         queue.clear();
 
         serializeJson(doc, wsMessageStr);
+        Serial.printf("[cadence] ms=%u push %u entities, %u bytes\n", millis(), (unsigned)doc["entities"].size(), wsMessageStr.length());
         wsclient::send_message(wsMessageStr);
     }
 }
