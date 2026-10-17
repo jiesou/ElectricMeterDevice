@@ -1,36 +1,42 @@
 #include "hal/time_ntp.h"
 #include <Arduino.h>
-#include <NTPClient.h>
 #include <WiFi.h>
-#include <WiFiUdp.h>
-#include <sys/time.h>
+#include <esp_sntp.h>
 
 namespace
 {
     constexpr const char *NTP_SERVER = "ntp.aliyun.com";
-    constexpr uint32_t SYNC_MS = 60 * 1000;
 
-    WiFiUDP udp;
-    NTPClient client(udp, NTP_SERVER, 0, SYNC_MS);
+    bool started = false;
+    bool synced = false;
+
+    void on_sync(struct timeval *)
+    {
+        synced = true;
+    }
 }
 
 namespace time_ntp
 {
+    // SNTP 在后台任务里收发，这里只负责起服务；WiFi 没连上时它自己会失败重试
     void init(void)
     {
-        client.begin();
+        esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);
+        esp_sntp_setservername(0, NTP_SERVER);
+        sntp_set_time_sync_notification_cb(on_sync);
+        esp_sntp_init();
+        started = true;
     }
 
     void update(void)
     {
-        if (WiFi.status() != WL_CONNECTED)
-            return;
-        if (!client.update())
+        if (!synced || WiFi.status() == WL_CONNECTED)
             return;
 
-        // 把网络时间写进系统时钟，time(nullptr) 才是真的
-        const timeval tv = {.tv_sec = (time_t)client.getEpochTime(), .tv_usec = 0};
-        settimeofday(&tv, nullptr);
+        // WiFi 掉线时 SNTP 会停在旧状态，重连后重启它再对一次
+        synced = false;
+        Serial.println("[ntp] wifi lost, restart sntp");
+        esp_sntp_restart();
     }
 
     uint32_t now(void)
