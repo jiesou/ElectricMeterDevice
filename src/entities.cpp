@@ -111,8 +111,6 @@ namespace entities
             // 把队列里的东西合并到同一个pub_entities请求
             JsonObject o = list.add<JsonObject>();
             o["id"] = e.id;
-            o["name"] = e.name;
-            o["type"] = e.type;
             if (e.ts) // 申报那条还没读数，没有 ts
                 o["ts"] = e.ts;
             if (e.type[0] == 's') // "switch"
