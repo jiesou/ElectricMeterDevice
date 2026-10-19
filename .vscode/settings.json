@@ -1,5 +1,7 @@
 {
     "files.associations": {
         "*.bak": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "C:/projects/ElectricMeterDevice/lib/multi_button",
+    "cmake.autoDetectSourceDirectory": false
 }
