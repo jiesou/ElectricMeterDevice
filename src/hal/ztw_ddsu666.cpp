@@ -58,6 +58,7 @@ namespace ztw_ddsu666
 
     void init(void)
     {
+        pinMode(PIN_RS485_EN, OUTPUT);
         // 先定成接收态再开输出，上电那一下不会误抢总线
         gpio_set_level(static_cast<gpio_num_t>(PIN_RS485_EN), 0);
         gpio_set_direction(static_cast<gpio_num_t>(PIN_RS485_EN), GPIO_MODE_OUTPUT);

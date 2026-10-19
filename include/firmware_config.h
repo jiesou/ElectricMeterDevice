@@ -1,7 +1,0 @@
-#pragma once
-
-#define WIFI_SSID "TP-LINK-AC1900"
-#define WIFI_PASSWORD "2QiA74UZ"
-#define WS_SERVER_HOST "192.168.11.192"
-#define WS_SERVER_PORT 8080
-#define WS_SERVER_PATH "/ws"
