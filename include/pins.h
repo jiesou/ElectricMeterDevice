@@ -11,9 +11,13 @@
 #define PIN_UART2_TX 33
 #define PIN_UART2_RX 32
 
-#define PIN_RELAY_1 25
-#define PIN_RELAY_2 26
-#define PIN_RELAY_3 27
+// 485 模块的 DE/RE 短接成一根 EN，高电平发送、低电平接收
+#define PIN_RS485_EN 27
+
+// 三路继电器，板上实际接的是 12/13/14
+#define PIN_RELAY_1 12
+#define PIN_RELAY_2 13
+#define PIN_RELAY_3 14
 
 #define PIN_BUTTON_LAST 34
 #define PIN_BUTTON_NEXT 35
