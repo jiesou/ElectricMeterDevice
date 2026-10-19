@@ -11,12 +11,12 @@
 namespace entities
 {
     std::vector<Entity> data = {
-        {"light", "灯", "switch", false, 0, 0, 0},
-        {"light-meter", "灯功率", "meter", false, 0, 0, 0},
-        {"kettle", "热水壶", "switch", false, 0, 0, 0},
-        {"kettle-meter", "热水壶功率", "meter", false, 0, 0, 0},
-        {"dryer", "吹风机", "switch", false, 0, 0, 0},
-        {"dryer-meter", "吹风机功率", "meter", false, 0, 0, 0},
+        {"light", "switch", "灯", false},
+        {"light-meter", "meter", "灯功率"},
+        {"kettle", "switch", "热水壶", false},
+        {"kettle-meter", "meter", "热水壶功率"},
+        {"dryer", "switch", "吹风机", false},
+        {"dryer-meter", "meter", "吹风机功率"},
     };
 
     std::deque<Entity> queue;
@@ -55,13 +55,15 @@ namespace
                 return; // 只有开关能被操作
 
             e.state = doc["state"] | false;
-            relay::set(i / 2, e.state);
+            relay::set(i / 2, *e.state);
 
             JsonDocument ack;
             ack["type"] = "ack_action_switch";
             ack["id"] = e.id;
-            ack["state"] = e.state;
-            ack["ts"] = time_ntp::now();
+            ack["state"] = *e.state;
+            const uint32_t ts = time_ntp::now();
+            if (ts)
+                ack["ts"] = ts;
 
             serializeJson(ack, wsMessageStr);
             wsclient::send_message(wsMessageStr);
@@ -84,10 +86,14 @@ namespace entities
         const ztw_ddsu666::Data &data = ztw_ddsu666::meters[i];
         const Entity &profile = entities::data[i * 2 + 1];
 
-        Entity read = profile; // 读数复用申报那条的 id/name/type
+        Entity read{}; // 只填读数真有的字段，id/type 从申报那条拿
+        read.id = profile.id;
+        read.type = profile.type;
         read.powerW = data.power_w;
         read.energyKwh = data.energy_kwh;
-        read.ts = time(nullptr);
+        const time_t now = time(nullptr);
+        if (now) // 时间还没对上就先不带 ts
+            read.ts = (uint32_t)now;
         entities::queue.push_back(read); });
     }
 
@@ -104,22 +110,26 @@ namespace entities
 
         JsonDocument doc;
         doc["type"] = "pub_entities";
-        doc["ts"] = time_ntp::now();
+        const uint32_t ts = time_ntp::now();
+        if (ts) // 时间还没对上就不报 0
+            doc["ts"] = ts;
         JsonArray list = doc["entities"].to<JsonArray>();
         for (const Entity &e : queue)
         {
             // 把队列里的东西合并到同一个pub_entities请求
             JsonObject o = list.add<JsonObject>();
             o["id"] = e.id;
-            if (e.ts) // 申报那条还没读数，没有 ts
-                o["ts"] = e.ts;
-            if (e.type[0] == 's') // "switch"
-                o["state"] = e.state;
-            else
-            {
-                o["powerW"] = e.powerW;
-                o["energyKwh"] = e.energyKwh;
-            }
+            o["type"] = e.type;
+            if (e.name)     // 只有申报那条有
+                o["name"] = *e.name;
+            if (e.state)
+                o["state"] = *e.state;
+            if (e.powerW)
+                o["powerW"] = *e.powerW;
+            if (e.energyKwh)
+                o["energyKwh"] = *e.energyKwh;
+            if (e.ts)
+                o["ts"] = *e.ts;
         }
         queue.clear();
 

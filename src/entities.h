@@ -1,18 +1,19 @@
 #pragma once
 #include <stdint.h>
 #include <deque>
+#include <optional>
 #include <vector>
 
-// 一条读数就是一次部分更新，没填的字段不会进报文
+// 一条记录只填它真有的字段，没填的字段不会进报文
 struct Entity
 {
     const char *id;
-    const char *name;
     const char *type; // "switch" / "meter"
-    bool state;
-    float powerW;
-    float energyKwh;
-    uint32_t ts;
+    std::optional<const char *> name;
+    std::optional<bool> state;
+    std::optional<float> powerW;
+    std::optional<float> energyKwh;
+    std::optional<uint32_t> ts;
 };
 
 namespace entities
