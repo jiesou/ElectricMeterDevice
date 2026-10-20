@@ -4,4 +4,4 @@
 .vscode/launch.json
 .vscode/ipch
 .workbuddy
-include\firmware_config.h
+include/firmware_config.h
