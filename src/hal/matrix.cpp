@@ -48,7 +48,7 @@ namespace matrix
             char power[16], energy[16];
             formatMeter(i + 1, ztw_ddsu666::meters[i], power, energy);
 
-            rgb_matrix::setColor(ztw_ddsu666::meters[i].online ? rgb_matrix::GREEN : rgb_matrix::RED);
+            rgb_matrix::setColor(rgb_matrix::GREEN);
             rgb_matrix::drawUTF8(2, y + 6, power);
 
             rgb_matrix::setColor(rgb_matrix::WHITE);

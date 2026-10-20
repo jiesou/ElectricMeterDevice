@@ -9,15 +9,9 @@ namespace matrix
     void update(void);
 
     // 格式化电表读数。一行最多 7 个 4px 字符，多了会顶到边框上
+    // 表掉线也照画上一次的读数，屏幕上不体现掉线
     inline void formatMeter(uint8_t addr, const ztw_ddsu666::Data &meter, char *power, char *energy)
     {
-        if (!meter.online)
-        {
-            snprintf(power, 16, "%u:--W", addr);
-            snprintf(energy, 16, "--kWh");
-            return;
-        }
-
         if (meter.power_w < 100)
             snprintf(power, 16, "%u:%.1fW", addr, meter.power_w);
         else
