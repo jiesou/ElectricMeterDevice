@@ -12,8 +12,8 @@ namespace
 
     void tone(uint16_t frequency)
     {
-        ESP_ERROR_CHECK(ledc_set_freq(LEDC_SPD, LEDC_TMR, frequency * buzzer::volume / 64));
-        ESP_ERROR_CHECK(ledc_set_duty(LEDC_SPD, LEDC_CH, LEDC_DUTY * buzzer::volume / 128));
+        ESP_ERROR_CHECK(ledc_set_freq(LEDC_SPD, LEDC_TMR, frequency));
+        ESP_ERROR_CHECK(ledc_set_duty(LEDC_SPD, LEDC_CH, LEDC_DUTY * buzzer::volume / 100));
         ESP_ERROR_CHECK(ledc_update_duty(LEDC_SPD, LEDC_CH));
     }
 
@@ -79,7 +79,7 @@ namespace
 
 namespace buzzer
 {
-    uint8_t volume = 100;
+    uint8_t volume = 100; // 0-100，100 是 50% 占空比，方波最响
     void init(void)
     {
         gpio_set_direction(static_cast<gpio_num_t>(PIN_BUZZER), GPIO_MODE_OUTPUT);
@@ -90,7 +90,8 @@ namespace buzzer
         t.timer_num = LEDC_TMR;
         t.duty_resolution = static_cast<ledc_timer_bit_t>(LEDC_BITS);
         t.freq_hz = 1000;
-        t.clk_cfg = LEDC_AUTO_CLK;
+        // 必须用 APB 80MHz：AUTO_CLK 在低频时会选中 1MHz 的 REF_TICK，8bit 下最高只能到 3906Hz
+        t.clk_cfg = LEDC_USE_APB_CLK;
         ESP_ERROR_CHECK(ledc_timer_config(&t));
 
         ledc_channel_config_t ch = {};
