@@ -62,8 +62,8 @@ namespace buzzer_player {
     inline void fail(void)
     {
         static const Note notes[] = {
-            {1000, 300, 0},
-            {1500, 200, 0},
+            {1500, 300, 0},
+            {1000, 200, 0},
         };
         play(notes);
     }
