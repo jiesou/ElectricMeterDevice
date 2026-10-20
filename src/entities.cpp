@@ -5,7 +5,7 @@
 #include <vector>
 #include "wsclient.h"
 #include "hal/relay.h"
-#include "hal/time_ntp.h"
+#include "hal/server_time.h"
 #include "hal/ztw_ddsu666.h"
 #include "hal/buzzer_player.h"
 
@@ -33,6 +33,13 @@ namespace
         JsonDocument doc;
         if (deserializeJson(doc, message))
             return;
+
+        // 心跳回包带着服务器的毫秒，本机时间就跟着它走
+        if (strcmp(doc["type"] | "", "ack_alive") == 0)
+        {
+            server_time::sync(doc["ts"] | 0ULL);
+            return;
+        }
 
         // 服务器把房间人数推下来：大屏算的净数照收，不自己拿进出相减
         if (strcmp(doc["type"] | "", "pub_entities") == 0)
@@ -68,8 +75,8 @@ namespace
             ack["type"] = "ack_action_switch";
             ack["id"] = e.id;
             ack["state"] = *e.state;
-            const uint32_t ts = time_ntp::now();
-            if (ts)
+            const uint64_t ts = server_time::now();
+            if (ts) // 时间还没对上就不报 0
                 ack["ts"] = ts;
 
             serializeJson(ack, wsMessageStr);
@@ -98,9 +105,9 @@ namespace entities
         read.type = profile.type;
         read.powerW = data.power_w;
         read.energyKwh = data.energy_kwh;
-        const time_t now = time(nullptr);
-        if (now) // 时间还没对上就先不带 ts
-            read.ts = (uint32_t)now;
+        const uint64_t ts = server_time::now();
+        if (ts) // 时间还没对上就先不带 ts
+            read.ts = ts;
         entities::queue.push_back(read); });
     }
 
@@ -117,7 +124,7 @@ namespace entities
 
         JsonDocument doc;
         doc["type"] = "pub_entities";
-        const uint32_t ts = time_ntp::now();
+        const uint64_t ts = server_time::now();
         if (ts) // 时间还没对上就不报 0
             doc["ts"] = ts;
         JsonArray list = doc["entities"].to<JsonArray>();

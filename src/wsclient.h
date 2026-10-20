@@ -3,10 +3,9 @@
 
 namespace wsclient
 {
-    extern bool isServerConnected;
+    extern volatile bool isServerConnected;
 
     void init(void);
-    void update(void);
     bool send_message(const String &message);
     void on_message(void (*callback)(const String &message));
 }
