@@ -13,7 +13,7 @@ struct Entity
     std::optional<bool> state;
     std::optional<float> powerW;
     std::optional<float> energyKwh;
-    std::optional<uint32_t> ts;
+    std::optional<uint64_t> ts;
 };
 
 namespace entities
