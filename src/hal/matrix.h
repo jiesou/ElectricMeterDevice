@@ -1,4 +1,7 @@
 #pragma once
+#include <U8g2lib.h>
+#include "entities.h"
+#include "hal/relay.h"
 #include "hal/rgb_matrix.h"
 #include "hal/ztw_ddsu666.h"
 
@@ -7,21 +10,6 @@ namespace matrix
 {
     void init(void);
     void update(void);
-
-    // 格式化电表读数。一行最多 7 个 4px 字符，多了会顶到边框上
-    // 表掉线也照画上一次的读数，屏幕上不体现掉线
-    inline void formatMeter(uint8_t addr, const ztw_ddsu666::Data &meter, char *power, char *energy)
-    {
-        if (meter.power_w < 100)
-            snprintf(power, 16, "%u:%.1fW", addr, meter.power_w);
-        else
-            snprintf(power, 16, "%u:%.0fW", addr, meter.power_w);
-
-        if (meter.energy_kwh < 100)
-            snprintf(energy, 16, "%.1fkWh", meter.energy_kwh);
-        else
-            snprintf(energy, 16, "%.0fkWh", meter.energy_kwh);
-    }
 
     // ---- 彩色边框动画，相位按时间自己走，跟 update 的 200ms 一拍 ----
 
@@ -51,5 +39,31 @@ namespace matrix
         const uint8_t anim = millis() / 200;
         for (int pos = 0; pos < perimeter; pos++)
             borderPixel(pos, colors[(pos / 4 + anim) % 6]);
+    }
+
+    // 一帧的内容：顶上一行人数，下面三行电表。一行最多 7 个 4px 字符，多了会顶到边框上
+    // 表掉线也照画上一次的读数，屏幕上不体现掉线
+    inline void drawContent(void)
+    {
+        char text[16];
+        snprintf(text, sizeof(text), "%d", entities::peopleCount);
+        rgb_matrix::drawUTF8Centered(20, text, rgb_matrix::CYAN);
+
+        for (size_t i = 0; i < ztw_ddsu666::METER_COUNT; i++)
+        {
+            const ztw_ddsu666::Data &meter = ztw_ddsu666::meters[i];
+            const Entity *relay = entities::findById(relay::ENTITY_RELAY_MAP[i].first);
+            const bool on = relay && relay->state.value_or(false);
+            const int16_t y = 21 + i * 14;
+
+            // 行顶那条 1px 横线就是这一路的闸：绿=合，灰=断
+            rgb_matrix::canvas.drawFastHLine(2, y, 28, on ? rgb_matrix::GREEN : rgb_matrix::GRAY);
+
+            snprintf(text, sizeof(text), "%u:%.0fW", (unsigned)(i + 1), meter.power_w);
+            rgb_matrix::drawUTF8(2, y + 6, text, rgb_matrix::GREEN);
+
+            snprintf(text, sizeof(text), "%.1fkWh", meter.energy_kwh);
+            rgb_matrix::drawUTF8(2, y + 13, text, rgb_matrix::WHITE);
+        }
     }
 }

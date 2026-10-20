@@ -352,13 +352,9 @@ namespace rgb_matrix
         readFontInfo();
     }
 
-    void setColor(uint16_t color)
+    int16_t drawUTF8(int16_t x, int16_t y, const char *str, uint16_t color)
     {
         fg_color = color;
-    }
-
-    int16_t drawUTF8(int16_t x, int16_t y, const char *str)
-    {
         int16_t sum = 0;
         while (*str)
         {
@@ -378,9 +374,9 @@ namespace rgb_matrix
         return sum;
     }
 
-    void drawUTF8Centered(int16_t y, const char *str)
+    void drawUTF8Centered(int16_t y, const char *str, uint16_t color)
     {
         int16_t x = (canvas.width() - utf8Width(str)) / 2;
-        drawUTF8(x < 0 ? 0 : x, y, str);
+        drawUTF8(x < 0 ? 0 : x, y, str, color);
     }
 }

@@ -39,9 +39,8 @@ namespace rgb_matrix
 
     // 字体数组直接传进来：ASCII 用 u8g2_font_4x6_tf，中文用 u8g2_font_wqy12_t_gb2312
     void setFont(const uint8_t *u8g2_font);
-    void setColor(uint16_t color);
 
     // 返回画完这一串的宽度
-    int16_t drawUTF8(int16_t x, int16_t y, const char *str);
-    void drawUTF8Centered(int16_t y, const char *str);
+    int16_t drawUTF8(int16_t x, int16_t y, const char *str, uint16_t color = WHITE);
+    void drawUTF8Centered(int16_t y, const char *str, uint16_t color = WHITE);
 }
