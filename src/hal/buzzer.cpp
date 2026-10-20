@@ -79,7 +79,7 @@ namespace
 
 namespace buzzer
 {
-    uint8_t volume = 50;
+    uint8_t volume = 100;
     void init(void)
     {
         gpio_set_direction(static_cast<gpio_num_t>(PIN_BUZZER), GPIO_MODE_OUTPUT);
