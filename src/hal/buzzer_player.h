@@ -49,4 +49,22 @@ namespace buzzer_player {
         };
         play(notes);
     }
+
+    inline void success(void)
+    {
+        static const Note notes[] = {
+            {1000, 100, 0},
+            {1500, 200, 0},
+        };
+        play(notes);
+    }
+
+    inline void fail(void)
+    {
+        static const Note notes[] = {
+            {1000, 300, 0},
+            {1500, 200, 0},
+        };
+        play(notes);
+    }
 }

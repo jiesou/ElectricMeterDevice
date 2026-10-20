@@ -7,6 +7,7 @@
 #include "hal/relay.h"
 #include "hal/time_ntp.h"
 #include "hal/ztw_ddsu666.h"
+#include "hal/buzzer_player.h"
 
 namespace entities
 {
@@ -37,8 +38,14 @@ namespace
         if (strcmp(doc["type"] | "", "pub_entities") == 0)
         {
             for (JsonObject e : doc["entities"].as<JsonArray>())
-                if (strcmp(e["type"] | "", "people-counter") == 0)
+                if (strcmp(e["type"] | "", "people-counter") == 0) {
+                    if (entities::peopleCount > (int)(e["netCount"] | 0)) {
+                        buzzer_player::success();
+                    } else if (entities::peopleCount < (int)(e["netCount"] | 0)) {
+                        buzzer_player::fail();
+                    }
                     entities::peopleCount = e["netCount"] | 0;
+                }
             return;
         }
 
@@ -134,7 +141,7 @@ namespace entities
         queue.clear();
 
         serializeJson(doc, wsMessageStr);
-        Serial.printf("[cadence] ms=%u push %u entities, %u bytes\n", millis(), (unsigned)doc["entities"].size(), wsMessageStr.length());
+        Serial.printf("[entites] ms=%u push %u entities, %u bytes\n", millis(), (unsigned)doc["entities"].size(), wsMessageStr.length());
         wsclient::send_message(wsMessageStr);
     }
 }
