@@ -57,6 +57,7 @@ namespace
 namespace ztw_ddsu666
 {
     Data meters[METER_COUNT] = {};
+    const char *ENTITY_METER_ADDR_MAP[METER_COUNT] = {"light-meter", "kettle-meter", "dryer-meter"};
 
     void init(void)
     {

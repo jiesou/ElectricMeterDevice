@@ -1,6 +1,7 @@
 #include "hal/matrix.h"
 #include <U8g2lib.h>
 #include "entities.h"
+#include "hal/relay.h"
 #include "hal/rgb_matrix.h"
 #include "hal/ztw_ddsu666.h"
 
@@ -38,7 +39,10 @@ namespace matrix
             const int16_t y = TOP + i * ROW;
 
             // 行顶那条 1px 横线就是这一路的闸：绿=合，灰=断
-            const bool on = entities::data[i * 2].state.value_or(false);
+            bool on = false;
+            for (const Entity &e : entities::data)
+                if (strcmp(e.id, relay::ENTITY_RELAY_MAP[i].first) == 0)
+                    on = e.state.value_or(false);
             rgb_matrix::canvas.drawFastHLine(2, y, 28, on ? rgb_matrix::GREEN : rgb_matrix::GRAY);
 
             char power[16], energy[16];

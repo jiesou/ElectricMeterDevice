@@ -1,6 +1,8 @@
 #include "main.h"
 #include <Arduino.h>
 #include <WiFi.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <multi_button.h>
 #include "entities.h"
 #include "hal/buzzer.h"
@@ -68,6 +70,18 @@ void setup(void)
 
     wsclient::init();
     entities::init();
+
+    // loop 在 core 1，WebSocket 在 core 0
+    xTaskCreatePinnedToCore(
+        [](void *)
+        {
+            while (true)
+            {
+                wsclient::update();
+                vTaskDelay(1 / portTICK_PERIOD_MS);
+            }
+        },
+        "wsclient", 8192, nullptr, 1, nullptr, 0);
 }
 
 void loop(void)

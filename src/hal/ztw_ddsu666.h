@@ -13,6 +13,7 @@ namespace ztw_ddsu666 {
         float energy_kwh;
     };
     extern Data meters[METER_COUNT];
+    extern const char *ENTITY_METER_ADDR_MAP[METER_COUNT]; // 表地址就是下标 + 1，这里填它在实体表里的 id
 
     void on_data(void (*callback)(size_t index));
 

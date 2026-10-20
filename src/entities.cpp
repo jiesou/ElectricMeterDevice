@@ -59,30 +59,27 @@ namespace
         if (strcmp(doc["type"] | "", "pub_action_switch") != 0)
             return;
 
-        // 实体表是 开关/电表 交替排列，第 i 只开关就是第 i 路继电器
-        for (size_t i = 0; i < entities::data.size(); i++)
-        {
-            Entity &e = entities::data[i];
-            if (strcmp(doc["id"] | "", e.id) != 0)
-                continue;
-            if (strcmp(e.type, "switch") != 0)
-                return; // 只有开关能被操作
+        Entity *e = entities::findById(doc["id"] | "");
+        if (!e || strcmp(e->type, "switch") != 0)
+            return; // 只有开关能被操作
 
-            e.state = doc["state"] | false;
-            relay::set(i / 2, *e.state);
+        e->state = doc["state"] | false;
+        relay::set(e->id, *e->state);
+        if (*e->state)
+            buzzer_player::success();
+        else
+            buzzer_player::fail();
 
-            JsonDocument ack;
-            ack["type"] = "ack_action_switch";
-            ack["id"] = e.id;
-            ack["state"] = *e.state;
-            const uint64_t ts = server_time::now();
-            if (ts) // 时间还没对上就不报 0
-                ack["ts"] = ts;
+        JsonDocument ack;
+        ack["type"] = "ack_action_switch";
+        ack["id"] = e->id;
+        ack["state"] = *e->state;
+        const uint64_t ts = server_time::now();
+        if (ts)
+            ack["ts"] = ts;
 
-            serializeJson(ack, wsMessageStr);
-            wsclient::send_message(wsMessageStr);
-            return;
-        }
+        serializeJson(ack, wsMessageStr);
+        wsclient::send_message(wsMessageStr);
     }
 }
 
@@ -95,18 +92,21 @@ namespace entities
         // 声明初始化数据
         queue.insert(queue.end(), data.begin(), data.end());
 
+        // 读数往这一步对应那只电表实体上填
         ztw_ddsu666::on_data([](size_t i)
                              {
+        Entity *profile = entities::findById(ztw_ddsu666::ENTITY_METER_ADDR_MAP[i]);
+        if (!profile)
+            return;
         const ztw_ddsu666::Data &data = ztw_ddsu666::meters[i];
-        const Entity &profile = entities::data[i * 2 + 1];
 
         Entity read{}; // 只填读数真有的字段，id/type 从申报那条拿
-        read.id = profile.id;
-        read.type = profile.type;
+        read.id = profile->id;
+        read.type = profile->type;
         read.powerW = data.power_w;
         read.energyKwh = data.energy_kwh;
         const uint64_t ts = server_time::now();
-        if (ts) // 时间还没对上就先不带 ts
+        if (ts)
             read.ts = ts;
         entities::queue.push_back(read); });
     }
@@ -125,7 +125,7 @@ namespace entities
         JsonDocument doc;
         doc["type"] = "pub_entities";
         const uint64_t ts = server_time::now();
-        if (ts) // 时间还没对上就不报 0
+        if (ts)
             doc["ts"] = ts;
         JsonArray list = doc["entities"].to<JsonArray>();
         for (const Entity &e : queue)
@@ -134,7 +134,7 @@ namespace entities
             JsonObject o = list.add<JsonObject>();
             o["id"] = e.id;
             o["type"] = e.type;
-            if (e.name)     // 只有申报那条有
+            if (e.name)
                 o["name"] = *e.name;
             if (e.state)
                 o["state"] = *e.state;
