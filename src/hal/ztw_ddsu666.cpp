@@ -11,6 +11,8 @@ namespace
     constexpr uint8_t RESPONSE_SIZE = 9;    // 地址 功能 字节数 4 字节 float CRC
     constexpr uint8_t ECHO_SIZE = 0;        // 发送时接收被关掉，听不到自己发的 8 字节；老模块 RE 常开，这里要填 8
     constexpr uint8_t FRAME_SIZE = ECHO_SIZE + RESPONSE_SIZE;
+    constexpr uint32_t GAP_MS = 30;         // 帧间静默
+    constexpr uint32_t TIMEOUT_MS = 500;    // 等不到回帧就跳过这只表
 
     // EN 高电平抢总线发，低电平交还总线收；模块反相就把这两个换过来
     constexpr uint8_t TX_LEVEL = HIGH;
@@ -78,6 +80,7 @@ namespace ztw_ddsu666
         static uint8_t rxSize = 0;
         static bool waiting = false;
         static uint32_t sentMs = 0;
+        static uint32_t lastFrameMs = 0;
 
         if (waiting)
         {
@@ -85,11 +88,12 @@ namespace ztw_ddsu666
                 rx[rxSize++] = Serial2.read();
 
             const bool full = rxSize == FRAME_SIZE;
-            if (!full && millis() - sentMs < 500) // timeout
-                return;
+            if (!full && millis() - sentMs < TIMEOUT_MS) // timeout
+                return;                                  // 回帧还没齐，先让别的活跑
 
             rxSize = 0;
             waiting = false;
+            lastFrameMs = millis(); // 帧间静默从这一帧收完算起，不占着 CPU 等
 
             const bool success = parse(addr, reg, rx + ECHO_SIZE);
             if (!full || !success)
@@ -113,7 +117,9 @@ namespace ztw_ddsu666
             }
         }
 
-        delay(30); // 帧间静默 30ms
+        if (millis() - lastFrameMs < GAP_MS)
+            return;
+
         // 上一帧处理完就接着发下一帧
         send_request(addr, reg);
         sentMs = millis();

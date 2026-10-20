@@ -77,6 +77,5 @@ void loop(void)
     ztw_ddsu666::update();
     matrix::update();
 
-    wsclient::update();
     entities::update();
 }
