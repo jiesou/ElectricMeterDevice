@@ -5,3 +5,11 @@
 .vscode/ipch
 .workbuddy
 include/firmware_config.h
+
+# 构建时生成
+include/font_data.h
+compile_commands.json
+
+# Python
+__pycache__/
+*.pyc

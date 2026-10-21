@@ -1,19 +1,13 @@
 #pragma once
-#include <U8g2lib.h>
 #include "entities.h"
-#include "hal/relay.h"
 #include "hal/rgb_matrix.h"
 #include "hal/ztw_ddsu666.h"
+#include "wsclient.h"
 
-// 屏幕上画什么，读数从 ztw_ddsu666 拿
+// 屏上画什么：上面房间号，中间有人/无人，底部两条 1px 状态条
 namespace matrix
 {
-    void init(void);
-    void update(void);
-
-    // ---- 彩色边框动画，相位按时间自己走，跟 update 的 200ms 一拍 ----
-
-    // 沿边框走一圈，pos 从左下角起逆时针绕回。画布是竖版，宽高跟帧缓冲反着
+    // 沿边框走一圈，pos 从左下角起逆时针绕回
     inline void borderPixel(int pos, uint16_t color)
     {
         const int16_t w = rgb_matrix::canvas.width();
@@ -41,29 +35,29 @@ namespace matrix
             borderPixel(pos, colors[(pos / 4 + anim) % 6]);
     }
 
-    // 一帧的内容：顶上一行人数，下面三行电表。一行最多 7 个 4px 字符，多了会顶到边框上
-    // 表掉线也照画上一次的读数，屏幕上不体现掉线
+    // 一帧的内容：房间号、有人/无人、三条状态条
     inline void drawContent(void)
     {
-        char text[16];
-        snprintf(text, sizeof(text), "%d", entities::peopleCount);
-        rgb_matrix::drawUTF8Centered(20, text, rgb_matrix::CYAN);
+        constexpr int16_t NAME_Y = 6;    // 房间号 12px 一行
+        constexpr int16_t PEOPLE_Y = 28; // 有人/无人
+        constexpr int16_t METER_Y = 54;  // 每只电表占一段
+        constexpr int16_t WS_Y = 60;     // 最底下一条是 WebSocket
+        constexpr int16_t SEGMENT_WIDTH = 10;
 
+        rgb_matrix::drawTextCentered(NAME_Y, "301", rgb_matrix::WHITE);
+
+        const bool people = entities::peopleCount > 0;
+        rgb_matrix::drawTextCentered(PEOPLE_Y, people ? "有人" : "无人", people ? rgb_matrix::RED : rgb_matrix::GREEN);
+
+        // 三段紧挨着，合成一整条；绿=在线，红=掉线
         for (size_t i = 0; i < ztw_ddsu666::METER_COUNT; i++)
-        {
-            const ztw_ddsu666::Data &meter = ztw_ddsu666::meters[i];
-            const Entity *relay = entities::findById(relay::ENTITY_RELAY_MAP[i].first);
-            const bool on = relay && relay->state.value_or(false);
-            const int16_t y = 21 + i * 14;
+            rgb_matrix::canvas.drawFastHLine(1 + i * SEGMENT_WIDTH, METER_Y, SEGMENT_WIDTH,
+                                             ztw_ddsu666::meters[i].online ? rgb_matrix::GREEN : rgb_matrix::RED);
 
-            // 行顶那条 1px 横线就是这一路的闸：绿=合，灰=断
-            rgb_matrix::canvas.drawFastHLine(2, y, 28, on ? rgb_matrix::GREEN : rgb_matrix::GRAY);
-
-            snprintf(text, sizeof(text), "%u:%.0fW", (unsigned)(i + 1), meter.power_w);
-            rgb_matrix::drawUTF8(2, y + 6, text, rgb_matrix::GREEN);
-
-            snprintf(text, sizeof(text), "%.1fkWh", meter.energy_kwh);
-            rgb_matrix::drawUTF8(2, y + 13, text, rgb_matrix::WHITE);
-        }
+        rgb_matrix::canvas.drawFastHLine(1, WS_Y, ztw_ddsu666::METER_COUNT * SEGMENT_WIDTH,
+                                         wsclient::isServerConnected ? rgb_matrix::GREEN : rgb_matrix::RED);
     }
+
+    void init(void);
+    void update(void);
 }
