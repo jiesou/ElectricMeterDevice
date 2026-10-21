@@ -12,11 +12,11 @@
 namespace entities
 {
     std::vector<Entity> data = {
-        {"light", "switch", "灯", false},
+        {"light", "switch", "灯", true},
         {"light-meter", "meter", "灯功率"},
-        {"kettle", "switch", "热水壶", false},
+        {"kettle", "switch", "热水壶", true},
         {"kettle-meter", "meter", "热水壶功率"},
-        {"dryer", "switch", "吹风机", false},
+        {"dryer", "switch", "吹风机", true},
         {"dryer-meter", "meter", "吹风机功率"},
     };
 
