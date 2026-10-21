@@ -46,9 +46,10 @@ namespace
         {
             for (JsonObject e : doc["entities"].as<JsonArray>())
                 if (strcmp(e["type"] | "", "people-counter") == 0) {
-                    if (entities::peopleCount > (int)(e["netCount"] | 0)) {
+                    const int newNetCount = (int)(e["netCount"] | 0);
+                    if (newNetCount > entities::peopleCount) {
                         buzzer_player::success();
-                    } else if (entities::peopleCount < (int)(e["netCount"] | 0)) {
+                    } else if (newNetCount < entities::peopleCount) {
                         buzzer_player::fail();
                     }
                     entities::peopleCount = e["netCount"] | 0;
