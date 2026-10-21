@@ -77,7 +77,8 @@ void setup(void)
         {
             while (true)
             {
-                wsclient::update();
+                if (WiFi.status() == WL_CONNECTED)
+                    wsclient::update();
                 vTaskDelay(1 / portTICK_PERIOD_MS);
             }
         },

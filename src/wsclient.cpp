@@ -6,7 +6,7 @@ namespace wsclient
     {
         // device_id: 芯片 MAC 前 3 字节
         char path[64];
-        snprintf(path, sizeof(path), "%s?device_id=%06x", WS_SERVER_PATH, (uint32_t)(ESP.getEfuseMac() >> 40));
+        snprintf(path, sizeof(path), "%s?device_id=%06x", WS_SERVER_PATH, (uint32_t)(ESP.getEfuseMac() >> 24));
         Serial.printf("[wsclient] path = %s\n", path);
 
         ws.setReconnectInterval(1000);
