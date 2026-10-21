@@ -74,7 +74,7 @@ namespace matrix
     int16_t textWidth(const char *txt)
     {
         int16_t width = 0;
-        while (*text)
+        while (*txt)
         {
             const font::Glyph *glyph = find(utf8Next(txt));
             if (glyph)
