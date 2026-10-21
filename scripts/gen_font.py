@@ -8,7 +8,7 @@
     https://cdn.jsdelivr.net/gh/olikraus/u8g2@master/tools/font/build/single_font_files/<FONT>.c
 字体列表：https://github.com/olikraus/u8g2/wiki/fntlistall
 
-只收界面字符串里的汉字和数字：调试日志、WiFi 密码这类 ASCII 字符永远不会画到
+只收界面字符串里的汉字和数字（数字运行时格式化，固定收 0-9）：调试日志、WiFi 密码这类 ASCII 字符永远不会画到
 屏上，收进来只是浪费 flash。界面上的字都写在 hal/matrix 里，所以只扫这两个文件。
 缺字直接报错，不改文件。
 """
@@ -168,7 +168,8 @@ def load_font(path):
 
 
 def used_chars():
-    chars = set()
+    # 数字是 snprintf 格式化出来的，字面量里只有 "301" 里的那几个，所以固定全收 0-9
+    chars = set("0123456789")
     for path in UI_FILES:
         text = path.read_text(encoding="utf-8", errors="ignore")
         text = re.sub(r"^\s*#\s*include[^\n]*", "", text, flags=re.M)
