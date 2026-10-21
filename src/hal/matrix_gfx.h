@@ -1,14 +1,14 @@
 #pragma once
 #include <Adafruit_GFX.h>
 
-// 面板 64x32 驱动 + 12px 点阵字，画什么见 hal/matrix.h
-namespace rgb_matrix
+// 面板驱动：怎么把像素送上屏。画什么见 hal/matrix.h
+namespace matrix
 {
     // 帧格式固定，屏幕侧按此解析，不能改行列顺序
     constexpr int16_t WIDTH = 64;
     constexpr int16_t HEIGHT = 32;
     constexpr uint8_t ROTATION = 1;
-    constexpr size_t BUFFER_SIZE = rgb_matrix::WIDTH * rgb_matrix::HEIGHT * sizeof(uint16_t);
+    constexpr size_t BUFFER_SIZE = WIDTH * HEIGHT * sizeof(uint16_t);
 
     constexpr uint16_t BLACK = 0x0000;
     constexpr uint16_t WHITE = 0xFFFF;
@@ -21,11 +21,13 @@ namespace rgb_matrix
     constexpr uint16_t FUCHSIA = 0xF81F;
 
     extern GFXcanvas16 canvas;
-    void init(void);
+
+    // 开面板，整屏初始化见 init()
+    void begin(void);
 
     void scanDisplay(void);
 
     int16_t textWidth(const char *text);
-    int16_t drawText(int16_t x, int16_t y, const char *text, uint16_t color);
-    void drawTextCentered(int16_t y, const char *text, uint16_t color);
+    int16_t text(int16_t x, int16_t y, const char *text, uint16_t color);
+    void textCentered(int16_t y, const char *text, uint16_t color);
 }

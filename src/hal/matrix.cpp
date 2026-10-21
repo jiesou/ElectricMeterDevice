@@ -4,7 +4,7 @@ namespace matrix
 {
     void init(void)
     {
-        rgb_matrix::init();
+        begin();
     }
 
     void update(void)
@@ -15,9 +15,10 @@ namespace matrix
             return;
         lastUpdate = now;
 
-        rgb_matrix::canvas.fillScreen(0);
-        drawRainbow();
+        canvas.fillScreen(0);
         drawContent();
-        rgb_matrix::scanDisplay();
+        drawRainbow();
+
+        scanDisplay();
     }
 }

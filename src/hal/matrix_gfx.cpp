@@ -1,4 +1,4 @@
-#include "hal/rgb_matrix.h"
+#include "hal/matrix_gfx.h"
 #include <Arduino.h>
 #include <SPI.h>
 #include "font_data.h"
@@ -42,11 +42,11 @@ namespace
     }
 }
 
-namespace rgb_matrix
+namespace matrix
 {
     GFXcanvas16 canvas(WIDTH, HEIGHT);
 
-    void init(void)
+    void begin(void)
     {
         spi.begin(PIN_MATRIX_SCK, -1, PIN_MATRIX_MOSI, PIN_MATRIX_CS);
         pinMode(PIN_MATRIX_CS, OUTPUT);
@@ -71,24 +71,24 @@ namespace rgb_matrix
         spi.endTransaction();
     }
 
-    int16_t textWidth(const char *text)
+    int16_t textWidth(const char *txt)
     {
         int16_t width = 0;
         while (*text)
         {
-            const font::Glyph *glyph = find(utf8Next(text));
+            const font::Glyph *glyph = find(utf8Next(txt));
             if (glyph)
                 width += glyph->xAdvance;
         }
         return width;
     }
 
-    int16_t drawText(int16_t x, int16_t y, const char *text, uint16_t color)
+    int16_t text(int16_t x, int16_t y, const char *txt, uint16_t color)
     {
         int16_t start = x;
-        while (*text)
+        while (*txt)
         {
-            const font::Glyph *glyph = find(utf8Next(text));
+            const font::Glyph *glyph = find(utf8Next(txt));
             if (!glyph)
                 continue;
 
@@ -104,9 +104,9 @@ namespace rgb_matrix
         return x - start;
     }
 
-    void drawTextCentered(int16_t y, const char *text, uint16_t color)
+    void textCentered(int16_t y, const char *txt, uint16_t color)
     {
-        int16_t x = (canvas.width() - textWidth(text)) / 2;
-        drawText(x < 0 ? 0 : x, y, text, color);
+        int16_t x = (canvas.width() - textWidth(txt)) / 2;
+        text(x < 0 ? 0 : x, y, txt, color);
     }
 }
