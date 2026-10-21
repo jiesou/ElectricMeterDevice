@@ -13,6 +13,7 @@
 
 - 我们要的是精简，易读可维护原型，不是工业化项目，我们要的是“它能跑起来演示”，而不是“能落地”
   - 想象一个初级程序员， **不看注释** 能不能轻松读懂代码。将这个设为标准
+  - **高内聚** 不需要暴露的不暴露，不需要的变量不创建
   - 不要堆砌文档和注释！让代码自己说话
   - 不要造名词——Entities 和 Devices 就够了，observers、conns、live 这种稀奇古怪的名词只会让人读不懂
 - **已规划** 的东西是长期目标，“已规划”不是 TODO list。用户没有敲定就不要主动去实现规划中的东西
@@ -32,9 +33,11 @@
 > 各种代码都可以直接从老代码copy过来
 
 - `platformio.ini`
+- `src/hal/`
 - `src/wsclient.cpp`
 - `src/entities.cpp`
-- `src/hal/`
+- 定死不能改：`src/matrix.cpp`，改到 `.h` drawContent 去
+- 定死不能改：`src/wsclient.cpp`
 
 # 已规划
 
