@@ -10,7 +10,7 @@
 
 只收界面字符串里的汉字和数字（数字运行时格式化，固定收 0-9）：调试日志、WiFi 密码这类 ASCII 字符永远不会画到
 屏上，收进来只是浪费 flash。界面上的字都写在 hal/matrix 里，所以只扫 matrix.h 和
-matrix.cpp / matrix-compat.cpp。
+matrix.cpp / matrix-compact.cpp。
 缺字直接报错，不改文件。
 """
 
@@ -30,7 +30,7 @@ FONT = "u8g2_font_wqy12_t_gb2312"
 FONT_C = ROOT / "scripts" / "assets" / f"{FONT}.c"
 OUT = ROOT / "include" / "font_data.h"
 UI_FILES = [ROOT / "src" / "hal" / "matrix.h"] + [
-    p for p in (ROOT / "src" / "hal" / "matrix.cpp", ROOT / "src" / "hal" / "matrix-compat.cpp") if p.exists()
+    p for p in (ROOT / "src" / "hal" / "matrix.cpp", ROOT / "src" / "hal" / "matrix-compact.cpp") if p.exists()
 ]
 
 # 12px 字：基线在行顶下 10 行（CJK 字高 11，u8g2 的 y 偏移 -1）
