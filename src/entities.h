@@ -22,6 +22,7 @@ namespace entities
     extern std::vector<Entity> data;
     extern std::deque<Entity> queue;
     extern int peopleCount; // 房间人数，服务器推下来的净数，大屏说多少就是多少
+    extern char roomName[24]; // 房名，服务器推下来的，网页上改成 302 屏上就是 302
 
     // 按 id 找，找不到返回 nullptr
     inline Entity *findById(const char *id)

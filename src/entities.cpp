@@ -22,6 +22,7 @@ namespace entities
 
     std::deque<Entity> queue;
     int peopleCount = 0;
+    char roomName[24] = "";
 }
 
 namespace
@@ -38,6 +39,13 @@ namespace
         if (strcmp(doc["type"] | "", "ack_alive") == 0)
         {
             server_time::sync(doc["ts"] | 0ULL);
+            return;
+        }
+
+        // 房名由服务器推下来：网页上改名，屏幕上那行字就跟着变
+        if (strcmp(doc["type"] | "", "pub_name") == 0)
+        {
+            snprintf(entities::roomName, sizeof(entities::roomName), "%s", (const char *)(doc["name"] | ""));
             return;
         }
 

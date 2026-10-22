@@ -36,7 +36,7 @@ namespace matrix
             borderPixel(pos, colors[(pos / 4 + anim) % 6]);
     }
 
-    // 一帧的内容：房间号、有人/无人、三条状态条
+    // 一帧的内容：房名、有人/无人、三条状态条
     inline void drawContent(void)
     {
         // 人数一变：先让有人/无人停 HOLD_MS，再把新人数闪一下，然后回到常态
@@ -59,7 +59,7 @@ namespace matrix
         const bool people = count > 0;
         const uint16_t peopleColor = people ? RED : GREEN;
 
-        textCentered(4, "301", WHITE);
+        textCentered(4, entities::roomName, WHITE);
 
         if (flashing)
         {
