@@ -29,6 +29,10 @@ namespace
 {
     String wsMessageStr;
 
+    // 待发队列的兜底上限：正常每秒清一次，攒不到这么多。真攒满了就丢新读数，
+    // 不 pop_front——队列开头是 6 条实体申明，丢了服务器就再也收不到开关声明
+    constexpr size_t QUEUE_MAX = 32;
+
     void on_message(const String &message)
     {
         JsonDocument doc;
@@ -104,6 +108,11 @@ namespace entities
         // 读数往这一步对应那只电表实体上填
         ztw_ddsu666::on_data([](size_t i)
                              {
+        // 没连上就不记读数：断网这几分钟里电表每秒都在出新读数，重连后发的本来就是最新的。
+        // 之前照单全收，队列越攒越长越吃堆，堆不够时 push_back 分配失败直接 abort 重启
+        if (!wsclient::isServerConnected || entities::queue.size() >= QUEUE_MAX)
+            return;
+
         Entity *profile = entities::findById(ztw_ddsu666::ENTITY_METER_ADDR_MAP[i]);
         if (!profile)
             return;
