@@ -63,3 +63,10 @@ WiFi 一直认证不过去（串口刷 `reason=2`）时，是 nvs 里的 WiFi/�
 pio run -t erase
 pio run -t upload --upload-port /dev/ttyUSB0
 ```
+
+## 分支
+
+- `main`：正常开发
+- `compat`：现场版本，**永远等于 main 加一个 `chore: clean`**（删掉 `src/hal/matrix.cpp`、`src/wsclient.cpp`，现场自己写）
+
+两个分支都可以提交，收口一律走 `git sync`（即 `scripts/git-sync.sh`）：把 compat 上除 `chore: clean` 外的提交搬到 main，再把 compat 重建回 main + `chore: clean`，最后强推。`SKIP_PUSH=1 git sync` 只看不推。
