@@ -16,7 +16,10 @@ namespace matrix
         lastUpdate = now;
 
         canvas.fillScreen(0);
+        
+        textCentered(4, entities::roomName + "号", WHITE);
         drawContent();
+
         drawRainbow();
 
         scanDisplay();

@@ -22,7 +22,7 @@ namespace entities
 
     std::deque<Entity> queue;
     int peopleCount = 0;
-    char roomName[24] = "";
+    std::string roomName;
 }
 
 namespace
@@ -49,7 +49,7 @@ namespace
         // 房名由服务器推下来：网页上改名，屏幕上那行字就跟着变
         if (strcmp(doc["type"] | "", "pub_name") == 0)
         {
-            snprintf(entities::roomName, sizeof(entities::roomName), "%s", (const char *)(doc["name"] | ""));
+            entities::roomName = (const char *)(doc["name"] | "");
             return;
         }
 

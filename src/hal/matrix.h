@@ -59,8 +59,6 @@ namespace matrix
         const bool people = count > 0;
         const uint16_t peopleColor = people ? RED : GREEN;
 
-        textCentered(4, entities::roomName, WHITE);
-
         if (flashing)
         {
             char buf[8];

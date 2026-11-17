@@ -36,6 +36,34 @@ UI_FILES = [ROOT / "src" / "hal" / "matrix.h"] + [
 # 12px 字：基线在行顶下 10 行（CJK 字高 11，u8g2 的 y 偏移 -1）
 ASCENT = 10
 
+# 房号后面那个字：12px 字库里的中文是 11x11，跟房号并排会把 32px 一行撑满，
+# 这里换成 Noto Sans CJK 在 10px 下的字模（阈值 110），窄一圈又还认得出
+HAND_DRAWN = {
+    "号": """
+        ..######..
+        ..#....#..
+        ..######..
+        ..........
+        .########.
+        ..#.......
+        ..######..
+        .......#..
+        .......#..
+        .....##...
+    """,
+    "房": """
+        .########.
+        .#......#.
+        .########.
+        .#...#....
+        .#.######.
+        .#..#.....
+        .#..#####.
+        .#.#......
+        #.#...##..
+    """,
+}
+
 
 class Bits:
     def __init__(self, data, pos):
@@ -132,6 +160,13 @@ class Font:
                 if ly >= h:
                     break
         return {"w": w, "h": h, "x": x, "y": y, "advance": advance, "rows": rows}
+
+
+def hand_drawn(char):
+    if char not in HAND_DRAWN:
+        return None
+    rows = [[c == "#" for c in line.strip()] for line in HAND_DRAWN[char].strip().splitlines()]
+    return {"w": len(rows[0]), "h": len(rows), "x": 0, "y": 0, "advance": len(rows[0]) + 1, "rows": rows}
 
 
 def load_font(path):
@@ -245,7 +280,7 @@ def main():
     glyphs = []
     missing = []
     for char in chars:
-        glyph = font.glyph(ord(char))
+        glyph = hand_drawn(char) or font.glyph(ord(char))
         if glyph:
             glyphs.append((char, glyph))
         else:

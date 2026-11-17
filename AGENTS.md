@@ -36,8 +36,8 @@
 - `src/hal/`
 - `src/wsclient.cpp`
 - `src/entities.cpp`
-- 定死不能改：`src/matrix.cpp`，改到 `.h` drawContent 去
-- 定死不能改：`src/wsclient.cpp`
+- 定死不能改：`src/matrix.cpp`，改到 `.h` drawContent 去。`matrix.cpp` 现场写，只调用几行壳，真正实现必须都放在 `matrix.h`
+- 定死不能改：`src/wsclient.cpp`，同理，现场写，只调用几行壳，真正实现必须都放在 `wsclient.h`
 
 # 已规划
 

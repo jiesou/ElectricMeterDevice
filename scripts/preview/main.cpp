@@ -10,7 +10,7 @@ namespace entities
     std::vector<Entity> data;
     std::deque<Entity> queue;
     int peopleCount = 2;
-    char roomName[24] = "450";
+    std::string roomName = "450";
 }
 
 namespace ztw_ddsu666
@@ -26,7 +26,7 @@ namespace ztw_ddsu666
 int main(int argc, char **argv)
 {
     if (argc > 1)
-        snprintf(entities::roomName, sizeof(entities::roomName), "%s", argv[1]);
+        entities::roomName = argv[1];
     if (argc > 2)
         entities::peopleCount = atoi(argv[2]);
     if (argc > 3)
@@ -36,6 +36,7 @@ int main(int argc, char **argv)
 
     matrix::begin();
     matrix::canvas.fillScreen(matrix::BLACK);
+    matrix::textCentered(4, entities::roomName + "号", matrix::WHITE);
     matrix::drawContent();
     matrix::drawRainbow();
 

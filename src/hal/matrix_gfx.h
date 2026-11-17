@@ -1,5 +1,6 @@
 #pragma once
 #include <Adafruit_GFX.h>
+#include <string>
 
 // 面板驱动：怎么把像素送上屏。画什么见 hal/matrix.h
 namespace matrix
@@ -30,4 +31,8 @@ namespace matrix
     int16_t textWidth(const char *text);
     int16_t text(int16_t x, int16_t y, const char *text, uint16_t color);
     void textCentered(int16_t y, const char *text, uint16_t color);
+    inline void textCentered(int16_t y, const std::string &text, uint16_t color)
+    {
+        textCentered(y, text.c_str(), color);
+    }
 }
