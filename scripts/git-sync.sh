@@ -23,7 +23,7 @@ git merge --ff-only origin/main
 for c in $(git rev-list --reverse main..compat); do
   [ "$(git log -1 --format=%s "$c")" = "$MARK" ] && continue
   echo ">> 把 $(git log -1 --format='%h %s' "$c") 搬到 main"
-  git cherry-pick --allow-empty "$c"
+  git cherry-pick --empty=drop "$c"
 done
 
 # 已经正好是 main + 那个提交，就什么都不用做
