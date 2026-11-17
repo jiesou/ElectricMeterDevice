@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# 维护铁律：compat 永远 = main + 一个"删两个文件"的提交
+# 维护铁律：compat 永远 = main + 一个"删 wsclient、换 matrix 桩"的提交
 # compat 上写的新提交会被自动搬到 main 上，然后 compat 按 main 重建
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-FILES=(src/hal/matrix.cpp src/wsclient.cpp)
+FILES=(src/wsclient.cpp)
 MARK="chore: clean"
 
 if ! git diff-index --quiet HEAD --; then
@@ -35,6 +35,29 @@ else
   git branch -f compat main
   git switch -q compat
   git rm -q "${FILES[@]}"
+  cat > src/hal/matrix.cpp <<'EOF'
+#include "hal/matrix.h"
+
+namespace matrix
+{
+    void init(void)
+    {
+        begin();
+    }
+
+    void update(void)
+    {
+        static uint32_t lastUpdate = 0;
+        uint32_t now = millis();
+        if (now - lastUpdate < 200)
+            return;
+        lastUpdate = now;
+
+        scanDisplay();
+    }
+}
+EOF
+  git add src/hal/matrix.cpp
   git commit -q -m "$MARK"
 fi
 
