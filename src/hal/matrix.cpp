@@ -15,13 +15,6 @@ namespace matrix
             return;
         lastUpdate = now;
 
-        canvas.fillScreen(matrix::BLACK);
-        
-        textCentered(4, entities::roomName + "号", WHITE);
-        drawContent();
-
-        drawRainbow();
-
         scanDisplay();
     }
 }
