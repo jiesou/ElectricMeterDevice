@@ -67,6 +67,6 @@ pio run -t upload --upload-port /dev/ttyUSB0
 ## 分支
 
 - `main`：正常开发
-- `compat`：现场版本，**永远等于 main 加一个 `chore: clean`**（删掉 `src/wsclient.cpp`，`src/hal/matrix.cpp` 换成只 `begin()`、`scanDisplay()` 的桩；现场自己写 wsclient）
+- `compat`：现场版本，**永远等于 main 加一个 `chore: clean`**（删掉 `src/wsclient.cpp` 和 `src/hal/ztw_ddsu666.cpp`，`src/hal/matrix.cpp` 换成只 `begin()`、`scanDisplay()` 的桩；现场自己写 wsclient 和 485）
 
 两个分支都可以提交，收口一律走 `git sync`（即 `scripts/git-sync.sh`）：把 compat 上除 `chore: clean` 外的提交搬到 main，再把 compat 重建回 main + `chore: clean`，最后强推。`SKIP_PUSH=1 git sync` 只看不推。

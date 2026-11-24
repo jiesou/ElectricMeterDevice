@@ -7,6 +7,7 @@ MARK = "USE_COMPAT"
 PAIRS = [
     ("wsclient.cpp", "wsclient-compat.cpp"),
     ("hal/matrix.cpp", "hal/matrix-compat.cpp"),
+    ("hal/ztw_ddsu666.cpp", "hal/ztw_ddsu666-compat.cpp"),
 ]
 
 

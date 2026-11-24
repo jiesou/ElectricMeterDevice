@@ -1,8 +1,8 @@
-﻿# 维护铁律：compat 永远 = main + 一个"删 wsclient、换 matrix 桩"的提交
+# 维护铁律：compat 永远 = main + 一个"删 wsclient/ztw_ddsu666、换 matrix 桩"的提交
 # compat 上写的新提交会被自动搬到 main 上，然后 compat 按 main 重建
 $ErrorActionPreference = 'Stop'
 
-$FILES = @('src/wsclient.cpp')
+$FILES = @('src/wsclient.cpp', 'src/hal/ztw_ddsu666.cpp')
 $MARK = 'chore: clean'
 
 function Invoke-Git {
